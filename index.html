@@ -1,0 +1,2859 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Quiz Game Show: Lịch Sử Đảng Cộng Sản Việt Nam - Đối Ngoại (Đại Hội VI - XIII)</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+      background: linear-gradient(145deg, #7f1d1d 0%, #991b1b 35%, #b91c1c 70%, #450a0a 100%);
+      color: #1e293b;
+      min-height: 100vh;
+    }
+    /* Subtle background pattern */
+    .bg-pattern {
+      background-image:
+        radial-gradient(circle at 15% 20%, rgba(251, 191, 36, 0.14) 0%, transparent 35%),
+        radial-gradient(circle at 85% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 40%),
+        repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.03) 0px, rgba(255, 255, 255, 0.03) 2px, transparent 2px, transparent 14px);
+    }
+
+    /* 5-second final countdown Red Strobe Border & Vignette Warning */
+    @keyframes dangerBorderPulse {
+      0%, 100% {
+        box-shadow: inset 0 0 0 0 rgba(239, 68, 68, 0), inset 0 0 0 0 rgba(220, 38, 38, 0);
+        border-color: transparent;
+      }
+      50% {
+        box-shadow: inset 0 0 0 12px #ef4444, inset 0 0 75px 25px rgba(220, 38, 38, 0.85);
+        border-color: #fef08a;
+      }
+    }
+    .danger-warning-active {
+      animation: dangerBorderPulse 0.45s infinite ease-in-out;
+      pointer-events: none;
+    }
+
+    @keyframes shakeTimer {
+      0%, 100% { transform: translateX(0) scale(1.08); }
+      25% { transform: translateX(-4px) rotate(-4deg) scale(1.12); }
+      75% { transform: translateX(4px) rotate(4deg) scale(1.12); }
+    }
+    .timer-critical {
+      animation: shakeTimer 0.35s infinite;
+    }
+
+    /* Floating Sad Emoji Particles for Wrong Answer */
+    @keyframes floatSadEmoji {
+      0% {
+        transform: translateY(40vh) scale(0.4) rotate(0deg);
+        opacity: 0;
+      }
+      15% {
+        opacity: 1;
+      }
+      80% {
+        opacity: 0.95;
+      }
+      100% {
+        transform: translateY(-55vh) scale(1.35) rotate(20deg);
+        opacity: 0;
+      }
+    }
+    .sad-emoji-particle {
+      position: fixed;
+      z-index: 90;
+      pointer-events: none;
+      animation: floatSadEmoji 2.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      filter: drop-shadow(0 8px 16px rgba(0,0,0,0.35));
+    }
+
+    /* Podium Rise Animation */
+    @keyframes podiumRise {
+      0% {
+        transform: translateY(100%) scaleY(0.2);
+        opacity: 0;
+      }
+      100% {
+        transform: translateY(0) scaleY(1);
+        opacity: 1;
+      }
+    }
+    .podium-bar {
+      transform-origin: bottom;
+      animation: podiumRise 0.85s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
+    }
+    .float-slow {
+      animation: floatSlow 2.6s ease-in-out infinite;
+    }
+
+    /* Answer card hover & active effects */
+    .option-btn {
+      transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .option-btn:hover:not(:disabled) {
+      transform: translateY(-3px) scale(1.01);
+      box-shadow: 0 14px 24px -6px rgba(127, 29, 29, 0.25);
+    }
+    .option-btn:active:not(:disabled) {
+      transform: translateY(1px) scale(0.99);
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(185, 28, 28, 0.5);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(185, 28, 28, 0.8);
+    }
+  </style>
+</head>
+<body class="bg-pattern min-h-screen flex flex-col justify-between relative select-none">
+
+  <!-- 5-SECOND RED FLASHING BORDER OVERLAY -->
+  <div id="redWarningOverlay" class="fixed inset-0 z-50 hidden border-8 border-red-500 rounded-none pointer-events-none">
+    <div class="absolute top-16 left-1/2 -translate-x-1/2 bg-red-600 text-white font-black px-6 py-2 rounded-full shadow-2xl border-2 border-yellow-300 flex items-center gap-2 text-sm md:text-base tracking-wider uppercase animate-bounce">
+      <span>⚠️ SẮP HẾT GIỜ! NHANH TAY CHỌN ĐÁP ÁN! ⚠️</span>
+    </div>
+  </div>
+
+  <!-- SAD EMOJI CONTAINER (When answering wrong) -->
+  <div id="sadEmojiContainer" class="fixed inset-0 pointer-events-none z-50 overflow-hidden"></div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toastBox" class="fixed bottom-5 right-5 z-50 hidden max-w-sm bg-white text-slate-900 border-l-8 border-red-600 rounded-xl shadow-2xl px-5 py-3.5 items-center gap-3 transition-all duration-300">
+    <span id="toastIcon" class="text-2xl">🔔</span>
+    <div class="flex-1">
+      <p id="toastTitle" class="font-bold text-sm text-red-700">Thông báo</p>
+      <p id="toastMessage" class="text-xs text-slate-600 mt-0.5"></p>
+    </div>
+  </div>
+
+  <!-- TOP NAVIGATION BAR -->
+  <header class="w-full bg-white/95 backdrop-blur-md border-b-4 border-amber-400 shadow-lg sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2">
+      <!-- Brand / Course Title -->
+      <div class="flex items-center gap-3 cursor-pointer" id="brandHomeBtn">
+        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center shadow-md border-2 border-amber-300 shrink-0">
+          <span class="text-2xl" role="img" aria-label="Vietnam Star">⭐</span>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="bg-red-700 text-amber-300 text-[10px] sm:text-xs font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider">SP1039 • CC01 • Nhóm 1</span>
+            <span id="connectionBadge" class="hidden bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full items-center gap-1">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> Live Real-time
+            </span>
+          </div>
+          <h1 class="text-sm sm:text-base md:text-lg font-black text-red-800 tracking-tight leading-tight">
+            ĐỐI NGOẠI VIỆT NAM (ĐẠI HỘI VI – ĐẠI HỘI XIII)
+          </h1>
+        </div>
+      </div>
+
+      <!-- Mode Switcher & Utility Controls -->
+      <div class="flex items-center gap-1.5 sm:gap-2">
+        <button id="navHomeBtn" type="button" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition flex items-center gap-1.5">
+          <span>🏠</span> <span class="hidden sm:inline">Trang chủ</span>
+        </button>
+        <button id="openQuestionModalBtn" type="button" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-300 transition flex items-center gap-1.5">
+          <span>📚</span> <span class="hidden sm:inline">Bộ câu hỏi</span> (<span id="headerQuestionCount">25</span>)
+        </button>
+        <button id="openGuideModalBtn" type="button" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-red-50 text-red-800 hover:bg-red-100 border border-red-200 transition flex items-center gap-1.5" title="Hướng dẫn kết nối điện thoại cả lớp">
+          <span>📱</span> <span class="hidden md:inline">Cách kết nối lớp</span>
+        </button>
+        <button id="soundToggleBtn" type="button" class="p-2 rounded-lg text-sm font-bold bg-red-700 text-white hover:bg-red-800 shadow transition" title="Bật/Tắt âm thanh Game Show">
+          <span id="soundToggleIcon">🔊</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 py-5 flex flex-col justify-center">
+
+    <!-- ==========================================
+         VIEW 1: LANDING / MODE SELECTION SCREEN
+         ========================================== -->
+    <section id="viewLanding" class="w-full space-y-6">
+      <!-- Hero Banner -->
+      <div class="bg-white rounded-3xl shadow-2xl border-4 border-amber-400 overflow-hidden relative">
+        <div class="bg-gradient-to-r from-red-800 via-red-600 to-red-800 px-6 py-6 sm:py-8 text-white relative overflow-hidden">
+          <!-- Decorative Star SVG -->
+          <svg class="absolute -right-10 -bottom-10 w-56 h-56 text-amber-400/15 pointer-events-none" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          <div class="max-w-3xl relative z-10 space-y-2">
+            <div class="inline-flex items-center gap-2 bg-amber-400 text-red-950 font-black text-xs uppercase px-3 py-1 rounded-full shadow">
+              <span>🎉 Minigame Sau Thuyết Trình • Lịch Sử Đảng CSVN</span>
+            </div>
+            <h2 class="text-2xl sm:text-4xl font-black leading-tight tracking-tight">
+              Đấu Trường Quizizz: Đường Lối Đối Ngoại Thời Kỳ Đổi Mới
+            </h2>
+            <p class="text-red-100 text-sm sm:text-base font-medium">
+              Chủ đề: Quá trình Đảng lãnh đạo thực hiện đối ngoại từ Đại hội lần thứ VI (12/1986) đến Đại hội lần thứ XIII (1/2021)
+            </p>
+          </div>
+        </div>
+
+        <!-- 3 Main Entry Cards: Player Join, Host Screen, Quick Split-Screen Demo -->
+        <div class="p-5 sm:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch bg-gradient-to-b from-white to-red-50/40">
+
+          <!-- LEFT: PLAYER JOIN CARD (Dành cho Điện thoại Sinh viên dưới lớp) -->
+          <div class="lg:col-span-7 bg-white rounded-2xl border-2 border-red-200 shadow-lg p-5 sm:p-6 flex flex-col justify-between space-y-5">
+            <div class="space-y-4">
+              <div class="flex items-center justify-between border-b border-red-100 pb-3">
+                <div class="flex items-center gap-2.5">
+                  <span class="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center text-xl font-black shadow">🎮</span>
+                  <div>
+                    <h3 class="text-lg sm:text-xl font-black text-red-800">Dành Cho Người Chơi (Điện Thoại)</h3>
+                    <p class="text-xs text-slate-500">Nhập mã PIN trên máy chiếu, đặt Nickname & chọn Avatar hài hước</p>
+                  </div>
+                </div>
+                <span class="bg-red-100 text-red-700 text-xs font-extrabold px-2.5 py-1 rounded-full">Quizizz Mode</span>
+              </div>
+
+              <!-- Room PIN & Nickname Input -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label for="playerPinInput" class="block text-xs font-extrabold text-red-900 uppercase mb-1">
+                    Mã Phòng (PIN trên máy chiếu)
+                  </label>
+                  <input id="playerPinInput" type="text" maxlength="8" placeholder="VD: 862021 (Để trống = Chơi ngay)"
+                    class="w-full px-3.5 py-2.5 rounded-xl border-2 border-red-200 focus:border-red-600 focus:outline-none font-black text-base text-red-700 tracking-widest uppercase bg-red-50/40 placeholder:text-slate-400 placeholder:font-normal placeholder:tracking-normal" />
+                </div>
+                <div>
+                  <label for="playerNameInput" class="block text-xs font-extrabold text-red-900 uppercase mb-1 flex items-center justify-between">
+                    <span>Nickname của bạn *</span>
+                    <button id="randomNameBtn" type="button" class="text-[11px] text-red-600 hover:underline font-bold">🎲 Tên ngẫu nhiên</button>
+                  </label>
+                  <input id="playerNameInput" type="text" maxlength="22" placeholder="Nhập biệt danh thật kêu..."
+                    class="w-full px-3.5 py-2.5 rounded-xl border-2 border-red-200 focus:border-red-600 focus:outline-none font-bold text-base text-slate-800 bg-white" />
+                </div>
+              </div>
+
+              <!-- Funny Avatar Picker -->
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <label class="text-xs font-extrabold text-red-900 uppercase">
+                    Chọn Nhân Vật Hài Hước Của Bạn: <span id="selectedAvatarLabel" class="text-red-600 font-black">Ếch Xanh Uyên Bác 🐸</span>
+                  </label>
+                </div>
+                <div id="avatarGrid" class="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-48 overflow-y-auto p-1.5 bg-red-50/60 rounded-xl border border-red-100">
+                  <!-- Populated by JS -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Buttons for Player -->
+            <div class="pt-2 flex flex-col sm:flex-row gap-3">
+              <button id="joinRoomPlayerBtn" type="button"
+                class="flex-1 py-3.5 px-5 rounded-xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-black text-base shadow-lg shadow-red-600/25 flex items-center justify-center gap-2 transition transform active:scale-95">
+                <span>🚀</span> <span>VÀO PHÒNG & BẮT ĐẦU CHƠI</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- RIGHT: HOST / PROJECTOR CARD (Dành cho Laptop cắm Máy chiếu trên bục giảng) -->
+          <div class="lg:col-span-5 flex flex-col gap-4 justify-between">
+            <div class="bg-gradient-to-br from-red-900 via-red-800 to-red-950 text-white rounded-2xl p-5 sm:p-6 shadow-xl border-2 border-amber-400 flex-1 flex flex-col justify-between space-y-4">
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="bg-amber-400 text-red-950 text-xs font-black px-2.5 py-1 rounded-md uppercase">🖥️ Màn Hình Quản Trò (Host)</span>
+                  <span class="text-xs text-amber-200 font-semibold">Cắm máy chiếu lớp học</span>
+                </div>
+                <h3 class="text-xl font-black text-white leading-snug">
+                  Tạo Phòng Chờ Mã PIN / QR & Chiếu Bảng Xếp Hạng Real-time
+                </h3>
+                <p class="text-xs sm:text-sm text-red-100 leading-relaxed">
+                  Mở màn hình này trên laptop thuyết trình để tạo <strong>Mã Phòng (PIN) & Mã QR</strong>. Khi cả lớp bấm trả lời trên điện thoại, điểm số và thứ hạng sẽ tự động nhảy real-time trên máy chiếu!
+                </p>
+
+                <div class="bg-white/10 backdrop-blur-sm rounded-xl p-3.5 border border-white/20 flex items-center justify-between text-xs text-red-100">
+                  <span>⏱️ Thời gian: <strong>35 giây/câu</strong> (Chớp đỏ 5s cuối)</span>
+                  <span>🏆 Bục vinh danh Top 5</span>
+                </div>
+              </div>
+
+              <div class="space-y-2.5 pt-2">
+                <button id="hostEditQuestionsQuickBtn" type="button"
+                  class="w-full py-2.5 px-4 rounded-xl bg-white/15 hover:bg-white/25 text-white border border-white/30 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition">
+                  <span>✏️</span> <span>Tự Chỉnh Sửa / Thêm / Xoá Câu Hỏi (<span id="hostSetupQuestionCount">25</span> câu)</span>
+                </button>
+                <button id="createHostRoomBtn" type="button"
+                  class="w-full py-3.5 px-5 rounded-xl bg-amber-400 hover:bg-amber-300 text-red-950 font-black text-base shadow-lg flex items-center justify-center gap-2 transition transform active:scale-95">
+                  <span>📡</span> <span>MỞ PHÒNG CHỜ TRÊN MÁY CHIẾU (HOST)</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Info card summarizing game rules -->
+            <div class="bg-white rounded-2xl p-4 border-2 border-red-100 shadow-sm space-y-2">
+              <div class="text-xs font-black text-red-800 uppercase flex items-center gap-1.5">
+                <span>⚡</span> <span>Luật chơi & Hiệu ứng đã kích hoạt:</span>
+              </div>
+              <ul class="text-xs text-slate-600 space-y-1 font-medium">
+                <li>• <strong>Tốc độ + Streak:</strong> Trả lời đúng càng nhanh điểm càng cao (tối đa 1.000đ/câu + thưởng chuỗi lửa 🔥).</li>
+                <li>• <strong>35s đếm ngược:</strong> 5 giây cuối màn hình <strong>chớp nháy viền đỏ</strong> cảnh báo kịch tính.</li>
+                <li>• <strong>Phản hồi tức thì:</strong> Trả lời đúng tung <strong>pháo giấy 🎉</strong>; trả lời sai tung <strong>icon chia buồn 😭💔</strong> và hiện ngay đáp án đúng + giải thích.</li>
+              </ul>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         VIEW 2: HOST LOBBY & LIVE DASHBOARD (Màn hình Máy chiếu)
+         ========================================== -->
+    <section id="viewHost" class="w-full hidden space-y-5">
+      <!-- Top Host Header Card: Room PIN + QR + Controls -->
+      <div class="bg-white rounded-3xl shadow-2xl border-4 border-amber-400 overflow-hidden">
+        <div class="bg-gradient-to-r from-red-900 via-red-700 to-red-900 px-6 py-4 text-white flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <span class="px-3 py-1 rounded-full bg-amber-400 text-red-950 font-black text-xs uppercase tracking-wider">
+              🖥️ Màn Hình Máy Chiếu (Host)
+            </span>
+            <h2 id="hostStatusTitle" class="text-lg sm:text-xl font-black">
+              Phòng Chờ Đấu Trường Lịch Sử Đảng
+            </h2>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button id="hostAddBotsBtn" type="button" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs border border-white/30 transition flex items-center gap-1.5" title="Thêm các bạn cùng lớp giả lập để test đua Top">
+              <span>🤖</span> <span>+ Thêm bạn chơi mẫu (Test)</span>
+            </button>
+            <button id="hostOpenPlayerTabBtn" type="button" class="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-red-950 font-black text-xs transition flex items-center gap-1.5">
+              <span>📱</span> <span>Chơi thử vai Người chơi ngay tại đây</span>
+            </button>
+            <button id="hostEndGameBtn" type="button" class="hidden px-3.5 py-1.5 rounded-xl bg-white text-red-800 hover:bg-red-50 font-black text-xs shadow transition">
+              🏁 Kết thúc & Vinh danh Top 5
+            </button>
+          </div>
+        </div>
+
+        <!-- Host Content Area -->
+        <div class="p-5 sm:p-6">
+          <!-- SUBVIEW 2A: HOST WAITING LOBBY -->
+          <div id="hostLobbyPanel" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            <!-- Left: Giant Room PIN & QR Code -->
+            <div class="lg:col-span-5 bg-gradient-to-b from-red-50 to-white rounded-2xl p-5 border-2 border-red-200 flex flex-col items-center text-center space-y-4">
+              <div class="w-full space-y-1">
+                <p class="text-xs font-extrabold text-red-700 uppercase tracking-wider">Bước 1: Quét QR hoặc mở link web trên điện thoại</p>
+                <div class="flex items-center justify-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-red-200 text-xs text-slate-600">
+                  <span id="hostJoinUrlText" class="truncate max-w-[240px] font-mono"></span>
+                  <button id="copyJoinLinkBtn" type="button" class="text-red-700 font-bold hover:underline shrink-0">Sao chép</button>
+                </div>
+              </div>
+
+              <!-- QR Code Container -->
+              <div class="bg-white p-3 rounded-2xl shadow-md border-2 border-amber-400 flex items-center justify-center">
+                <div id="hostQrContainer" class="w-40 h-40 flex items-center justify-center"></div>
+              </div>
+
+              <div class="w-full space-y-1">
+                <p class="text-xs font-extrabold text-red-700 uppercase tracking-wider">Bước 2: Nhập Mã Phòng (PIN) để vào</p>
+                <div class="bg-red-700 text-amber-300 font-black text-4xl sm:text-5xl py-3 px-6 rounded-2xl tracking-[0.2em] shadow-inner border-2 border-amber-400 select-all" id="hostPinDisplay">
+                  ------
+                </div>
+                <p id="peerStatusText" class="text-[11px] font-semibold text-emerald-700 pt-1">
+                  ⚡ Đang khởi tạo kết nối Real-time...
+                </p>
+              </div>
+            </div>
+
+            <!-- Right: Connected Players Grid & Start Button -->
+            <div class="lg:col-span-7 flex flex-col justify-between h-full space-y-4">
+              <div class="flex items-center justify-between border-b-2 border-red-100 pb-3">
+                <div>
+                  <h3 class="text-xl font-black text-red-900 flex items-center gap-2">
+                    <span>👥 Sĩ số phòng chờ:</span>
+                    <span id="hostPlayerCountBadge" class="bg-red-600 text-white px-3 py-0.5 rounded-full text-base">0</span>
+                  </h3>
+                  <p class="text-xs text-slate-500 mt-0.5">
+                    Tổng số câu hỏi: <strong id="hostSelectedPackLabel" class="text-red-700">25 câu</strong> • Mỗi người chơi tự làm bài theo tốc độ riêng (Quizizz)
+                  </p>
+                </div>
+                <button id="hostStartGameBtn" type="button"
+                  class="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-black text-base shadow-xl shadow-red-600/30 flex items-center gap-2 transition transform hover:scale-105 active:scale-95">
+                  <span>🚀</span> <span>BẮT ĐẦU TRẬN ĐẤU!</span>
+                </button>
+              </div>
+
+              <!-- Players Waiting List -->
+              <div id="hostLobbyPlayersGrid" class="min-h-[240px] max-h-[320px] overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-3 bg-red-50/50 rounded-2xl border border-red-100">
+                <!-- Populated by JS -->
+              </div>
+
+
+            </div>
+          </div>
+
+          <!-- SUBVIEW 2B: HOST LIVE LEADERBOARD & PROGRESS (During Game) -->
+          <div id="hostLivePanel" class="hidden space-y-6">
+            <!-- Live Stats Bar -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+              <div class="bg-red-50 border-2 border-red-200 rounded-2xl p-3.5 flex items-center gap-3">
+                <span class="text-3xl">🔑</span>
+                <div>
+                  <div class="text-[11px] font-bold text-red-600 uppercase">Mã Phòng (PIN)</div>
+                  <div id="hostLivePin" class="text-xl font-black text-red-900 tracking-wider">------</div>
+                </div>
+              </div>
+              <div class="bg-red-50 border-2 border-red-200 rounded-2xl p-3.5 flex items-center gap-3">
+                <span class="text-3xl">🧑‍🎓</span>
+                <div>
+                  <div class="text-[11px] font-bold text-red-600 uppercase">Người chơi đang đua</div>
+                  <div id="hostLivePlayersCount" class="text-xl font-black text-red-900">0</div>
+                </div>
+              </div>
+              <div class="bg-amber-50 border-2 border-amber-300 rounded-2xl p-3.5 flex items-center gap-3">
+                <span class="text-3xl">🎯</span>
+                <div>
+                  <div class="text-[11px] font-bold text-amber-800 uppercase">Tỷ lệ trả lời đúng</div>
+                  <div id="hostLiveAccuracy" class="text-xl font-black text-amber-900">0%</div>
+                </div>
+              </div>
+              <div class="bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-3.5 flex items-center gap-3">
+                <span class="text-3xl">📊</span>
+                <div>
+                  <div class="text-[11px] font-bold text-emerald-700 uppercase">Tiến độ hoàn thành</div>
+                  <div id="hostLiveProgress" class="text-xl font-black text-emerald-900">0%</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Live Real-time Leaderboard Table -->
+            <div class="bg-white rounded-2xl border-2 border-red-200 shadow-inner overflow-hidden">
+              <div class="bg-red-800 text-white px-5 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-xl">🔥</span>
+                  <h3 class="font-black text-base sm:text-lg uppercase tracking-wide">Bảng Xếp Hạng Trực Tiếp (Cập Nhật Sau Mỗi Câu Hỏi)</h3>
+                </div>
+                <span class="text-xs text-amber-300 font-bold" id="hostLastEventTicker">Đang chờ câu trả lời đầu tiên...</span>
+              </div>
+              <div id="hostLiveLeaderboardList" class="divide-y divide-red-100 max-h-[420px] overflow-y-auto p-3 space-y-2">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         VIEW 3: PLAYER QUIZ SCREEN (Kiểu Quizizz)
+         ========================================== -->
+    <section id="viewPlayerGame" class="w-full hidden space-y-4 max-w-4xl mx-auto">
+
+      <!-- Player Top Status Bar -->
+      <div class="bg-white rounded-2xl shadow-lg border-2 border-amber-400 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+        <!-- Player Avatar & Nickname -->
+        <div class="flex items-center gap-2.5">
+          <div id="playerHeaderAvatar" class="w-11 h-11 rounded-xl bg-red-100 border-2 border-red-500 flex items-center justify-center text-2xl shadow-sm">
+            🐸
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span id="playerHeaderName" class="font-black text-slate-900 text-sm sm:text-base">Chiến Thần</span>
+              <span id="playerRankBadge" class="bg-red-700 text-amber-300 text-xs font-black px-2 py-0.5 rounded-full">Hạng #1</span>
+            </div>
+            <div class="flex items-center gap-3 text-xs text-slate-500 font-bold">
+              <span>Điểm: <strong id="playerHeaderScore" class="text-red-700 text-sm">0</strong></span>
+              <span id="playerStreakBadge" class="inline-flex items-center gap-1 text-orange-600 font-extrabold">
+                🔥 Streak: <span id="playerHeaderStreak">0</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Question Progress & 35s Countdown Timer -->
+        <div class="flex items-center gap-3 sm:gap-4">
+          <div class="text-right">
+            <div class="text-[11px] font-extrabold text-slate-400 uppercase">Câu hỏi</div>
+            <div class="text-base sm:text-lg font-black text-red-800">
+              <span id="currentQIndexText">1</span> / <span id="totalQCountText">25</span>
+            </div>
+          </div>
+
+          <!-- 35s Circular / Pill Timer -->
+          <div id="timerBox" class="flex items-center gap-2 bg-red-700 text-white px-4 py-2 rounded-2xl shadow-md border-2 border-amber-300 transition-all">
+            <span class="text-lg">⏱️</span>
+            <div class="text-center">
+              <span id="timerSecondsText" class="text-xl sm:text-2xl font-black tracking-tight">35</span>
+              <span class="text-xs font-bold">s</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress Bar for 35s Timer -->
+      <div class="w-full h-3 bg-red-950/50 rounded-full overflow-hidden p-0.5 border border-white/20">
+        <div id="timerProgressBar" class="h-full bg-gradient-to-r from-amber-300 via-yellow-400 to-emerald-400 rounded-full transition-all duration-300" style="width: 100%;"></div>
+      </div>
+
+      <!-- QUESTION CARD & OPTIONS -->
+      <div id="questionStageCard" class="bg-white rounded-3xl shadow-2xl border-4 border-white overflow-hidden">
+        <div id="questionSectionBadge" class="hidden"></div>
+
+        <!-- Question Text -->
+        <div class="p-5 sm:p-7">
+          <h2 id="questionTextDisplay" class="text-lg sm:text-xl md:text-2xl font-black text-slate-900 leading-snug">
+            Đang tải câu hỏi...
+          </h2>
+
+          <!-- 4 Options Grid (A, B, C, D) -->
+          <div id="optionsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-3.5 mt-6">
+            <!-- Populated by JS -->
+          </div>
+
+          <!-- POST-ANSWER FEEDBACK BOX (Shows immediately when Player selects an answer or time runs out) -->
+          <div id="answerFeedbackPanel" class="hidden mt-6 rounded-2xl p-5 border-2 transition-all space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-3">
+                <span id="feedbackEmojiIcon" class="text-4xl">🎉</span>
+                <div>
+                  <h3 id="feedbackTitleText" class="text-lg sm:text-xl font-black">CHÍNH XÁC! TUYỆT VỜI!</h3>
+                  <p id="feedbackSubtitleText" class="text-xs sm:text-sm font-semibold opacity-90"></p>
+                </div>
+              </div>
+              <div id="feedbackPointsBadge" class="px-4 py-2 rounded-xl font-black text-base sm:text-lg shadow-sm">
+                +850 điểm
+              </div>
+            </div>
+
+            <!-- Explicitly reveal Correct Answer & Explanation -->
+            <div class="bg-white/90 rounded-xl p-3.5 border border-slate-200 text-slate-800 space-y-1.5">
+              <div class="text-xs sm:text-sm font-black text-emerald-800 flex items-center gap-1.5">
+                <span>✅ Đáp án đúng:</span>
+                <span id="feedbackCorrectAnswerText" class="underline decoration-emerald-500 decoration-2"></span>
+              </div>
+              <p id="feedbackExplanationText" class="text-xs sm:text-sm text-slate-600 leading-relaxed"></p>
+            </div>
+
+            <div class="flex justify-end pt-1">
+              <button id="showIntermissionLeaderboardBtn" type="button"
+                class="px-5 py-2.5 rounded-xl bg-red-700 hover:bg-red-800 text-white font-black text-sm shadow-lg flex items-center gap-2 transition transform hover:scale-105">
+                <span>📊 Xem Bảng Xếp Hạng Sau Câu Này</span> <span>➔</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- INTERMISSION LEADERBOARD AFTER EACH QUESTION -->
+      <div id="intermissionLeaderboardCard" class="hidden bg-white rounded-3xl shadow-2xl border-4 border-amber-400 overflow-hidden">
+        <div class="bg-gradient-to-r from-red-800 via-red-600 to-red-800 px-6 py-4 text-white flex items-center justify-between">
+          <div>
+            <span class="text-xs font-extrabold text-amber-300 uppercase">Bảng Xếp Hạng Kịch Tính</span>
+            <h3 id="intermissionTitle" class="text-lg sm:text-xl font-black">Thứ Hạng Cập Nhật Sau Câu Hỏi 1</h3>
+          </div>
+          <button id="nextQuestionBtn" type="button"
+            class="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-red-950 font-black text-sm sm:text-base shadow-lg flex items-center gap-2 transition transform hover:scale-105">
+            <span id="nextQuestionBtnLabel">Câu Tiếp Theo</span> <span>🚀</span>
+          </button>
+        </div>
+
+        <div class="p-5 space-y-4">
+          <!-- Player's current standing highlight -->
+          <div id="intermissionMySummary" class="bg-red-50 border-2 border-red-200 rounded-2xl p-3.5 flex items-center justify-between">
+            <!-- Populated by JS -->
+          </div>
+
+          <!-- Top Standings List -->
+          <div id="intermissionLeaderboardList" class="space-y-2 max-h-80 overflow-y-auto pr-1">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         VIEW 4: FINAL KAHOOT-STYLE PODIUM (TOP 5) + FULL RANKING LIST
+         ========================================== -->
+    <section id="viewPodium" class="w-full hidden space-y-6">
+      <div class="bg-white rounded-3xl shadow-2xl border-4 border-amber-400 overflow-hidden">
+        <!-- Header Banner -->
+        <div class="bg-gradient-to-r from-red-900 via-red-700 to-red-900 px-6 py-6 text-center text-white relative">
+          <div class="inline-flex items-center gap-2 bg-amber-400 text-red-950 font-black text-xs uppercase px-3.5 py-1 rounded-full shadow mb-2">
+            <span>🏆 CHUNG CUỘC • LỊCH SỬ ĐẢNG CỘNG SẢN VIỆT NAM 🏆</span>
+          </div>
+          <h2 class="text-2xl sm:text-4xl font-black tracking-tight">
+            BỤC VINH DANH TOP 5 NGƯỜI CHIẾN THẮNG
+          </h2>
+          <p class="text-xs sm:text-sm text-red-100 mt-1">
+            Chủ đề: Quá trình Đảng lãnh đạo thực hiện đối ngoại từ Đại hội VI (12/1986) đến Đại hội XIII (1/2021)
+          </p>
+        </div>
+
+        <!-- TOP 5 PODIUM STAGE -->
+        <div class="p-5 sm:p-8 bg-gradient-to-b from-red-900/95 via-red-800 to-red-950 text-white">
+          <div id="top5PodiumContainer" class="max-w-5xl mx-auto grid grid-cols-5 gap-2 sm:gap-4 items-end pt-8 pb-2 min-h-[300px]">
+            <!-- Populated dynamically by JS in podium order: #4, #2, #1, #3, #5 -->
+          </div>
+        </div>
+
+        <!-- FULL PLAYER LIST & STATS TABLE (Giống Kahoot) -->
+        <div class="p-5 sm:p-8 bg-white space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-3 border-b-2 border-red-100 pb-3">
+            <div>
+              <h3 class="text-lg sm:text-xl font-black text-red-900">
+                📋 Bảng Tổng Sắp Toàn Bộ Người Chơi
+              </h3>
+              <p class="text-xs text-slate-500">Thống kê chi tiết điểm tốc độ, chuỗi Streak cao nhất và số câu trả lời đúng</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="exportCsvBtn" type="button" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow flex items-center gap-1.5 transition">
+                <span>📥</span> <span>Tải bảng điểm (.CSV)</span>
+              </button>
+              <button id="playAgainBtn" type="button" class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs sm:text-sm shadow flex items-center gap-1.5 transition">
+                <span>🔄</span> <span>Chơi Lại Trận Mới</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="finalFullRankingList" class="space-y-2.5 max-h-[420px] overflow-y-auto pr-1">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==========================================
+       MODAL 1: QUESTION BANK VIEWER & EDITOR (CRUD)
+       ========================================== -->
+  <div id="questionBankModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden items-center justify-center p-2 sm:p-5">
+    <div class="bg-white rounded-3xl max-w-5xl w-full max-h-[92vh] flex flex-col shadow-2xl border-4 border-red-600 overflow-hidden">
+      <!-- Modal Header -->
+      <div class="bg-gradient-to-r from-red-800 via-red-700 to-red-800 text-white px-5 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 class="text-base sm:text-lg font-black flex items-center gap-2">
+            <span>✏️ Quản Lý & Chỉnh Sửa Bộ Câu Hỏi (Dành Cho Host)</span>
+          </h3>
+          <p class="text-xs text-red-100">Tự do thêm câu hỏi mới, sửa nội dung câu hỏi/đáp án hoặc xoá câu hỏi bất kỳ — tự động lưu ngay trên web</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="openAddQuestionFormBtn" type="button" class="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-red-950 font-black text-xs sm:text-sm shadow flex items-center gap-1.5 transition">
+            <span>➕</span> <span>Thêm Câu Hỏi Mới</span>
+          </button>
+          <button id="closeQuestionModalBtn" type="button" class="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 text-white font-black text-lg flex items-center justify-center">✕</button>
+        </div>
+      </div>
+
+      <!-- Toolbar: Question count & Reset default -->
+      <div class="shrink-0 bg-red-50 border-b border-red-200 px-5 py-2.5 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <span id="modalQuestionSummaryText" class="text-xs sm:text-sm font-black text-red-800 bg-white px-3 py-1 rounded-full border border-red-200 shadow-sm">
+            Tổng cộng: 25 câu hỏi
+          </span>
+          <span class="text-xs text-slate-500 hidden sm:inline">Bấm <strong>"✏️ Sửa"</strong> ở câu bất kỳ hoặc <strong>"➕ Thêm Câu Hỏi Mới"</strong></span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button id="requestResetDefaultQuestionsBtn" type="button" class="px-3 py-1.5 rounded-lg bg-white hover:bg-red-100 text-red-700 border border-red-300 font-bold text-xs transition">
+            🔄 Khôi phục 25 câu gốc
+          </button>
+          <div id="confirmResetBox" class="hidden items-center gap-1.5 bg-amber-100 border border-amber-400 px-2.5 py-1 rounded-lg">
+            <span class="text-[11px] font-bold text-amber-950">Khôi phục về 25 câu gốc?</span>
+            <button id="confirmResetYesBtn" type="button" class="px-2 py-0.5 rounded bg-red-600 text-white font-black text-[11px]">Đồng ý</button>
+            <button id="confirmResetNoBtn" type="button" class="px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-bold text-[11px]">Huỷ</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADD / EDIT QUESTION FORM PANEL (Takes ~50% height of the modal when open, shrink-0 so it never gets squished) -->
+      <div id="questionEditorFormPanel" class="hidden shrink-0 h-[52vh] min-h-[340px] max-h-[56vh] bg-amber-50 border-b-4 border-amber-400 p-4 sm:p-6 space-y-3.5 overflow-y-auto shadow-inner">
+        <div class="flex items-center justify-between border-b border-amber-300 pb-2.5">
+          <h4 id="editorFormTitle" class="font-black text-base sm:text-lg text-red-900 flex items-center gap-2">
+            <span>✨ Thêm Câu Hỏi Mới</span>
+          </h4>
+          <button id="cancelQuestionFormBtn" type="button" class="px-3 py-1 rounded-lg bg-white border border-amber-300 text-xs font-bold text-slate-600 hover:text-red-700">Đóng khung nhập ✕</button>
+        </div>
+
+        <input type="hidden" id="editQuestionIdInput" value="" />
+
+        <div>
+          <label for="editQuestionTextInput" class="block text-xs sm:text-sm font-extrabold text-red-900 uppercase mb-1">Nội dung câu hỏi *</label>
+          <textarea id="editQuestionTextInput" rows="2" placeholder="Nhập nội dung câu hỏi trắc nghiệm..."
+            class="w-full px-3.5 py-2.5 rounded-xl border-2 border-amber-300 bg-white text-sm sm:text-base font-bold text-slate-900 focus:border-red-600 focus:outline-none"></textarea>
+        </div>
+
+        <!-- 4 Options Inputs + Correct Answer Selector -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="bg-white p-3 rounded-xl border-2 border-slate-200 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-black text-red-700">Đáp án A *</span>
+              <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs font-extrabold text-emerald-700">
+                <input type="radio" name="editCorrectOption" value="0" checked class="accent-emerald-600 w-4 h-4" />
+                <span>Là đáp án đúng</span>
+              </label>
+            </div>
+            <input id="editOptAInput" type="text" placeholder="Nhập nội dung đáp án A..."
+              class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold focus:border-red-600 focus:outline-none" />
+          </div>
+
+          <div class="bg-white p-3 rounded-xl border-2 border-slate-200 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-black text-amber-600">Đáp án B *</span>
+              <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs font-extrabold text-emerald-700">
+                <input type="radio" name="editCorrectOption" value="1" class="accent-emerald-600 w-4 h-4" />
+                <span>Là đáp án đúng</span>
+              </label>
+            </div>
+            <input id="editOptBInput" type="text" placeholder="Nhập nội dung đáp án B..."
+              class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold focus:border-red-600 focus:outline-none" />
+          </div>
+
+          <div class="bg-white p-3 rounded-xl border-2 border-slate-200 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-black text-rose-600">Đáp án C *</span>
+              <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs font-extrabold text-emerald-700">
+                <input type="radio" name="editCorrectOption" value="2" class="accent-emerald-600 w-4 h-4" />
+                <span>Là đáp án đúng</span>
+              </label>
+            </div>
+            <input id="editOptCInput" type="text" placeholder="Nhập nội dung đáp án C..."
+              class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold focus:border-red-600 focus:outline-none" />
+          </div>
+
+          <div class="bg-white p-3 rounded-xl border-2 border-slate-200 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-black text-orange-600">Đáp án D *</span>
+              <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs font-extrabold text-emerald-700">
+                <input type="radio" name="editCorrectOption" value="3" class="accent-emerald-600 w-4 h-4" />
+                <span>Là đáp án đúng</span>
+              </label>
+            </div>
+            <input id="editOptDInput" type="text" placeholder="Nhập nội dung đáp án D..."
+              class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold focus:border-red-600 focus:outline-none" />
+          </div>
+        </div>
+
+        <div>
+          <label for="editQuestionExplainInput" class="block text-xs font-extrabold text-red-900 uppercase mb-1">Giải thích đáp án đúng (Sẽ hiện khi người chơi trả lời xong)</label>
+          <input id="editQuestionExplainInput" type="text" placeholder="Nhập giải thích ngắn gọn cho đáp án đúng..."
+            class="w-full px-3.5 py-2 rounded-xl border-2 border-amber-300 bg-white text-xs sm:text-sm font-semibold text-slate-800 focus:border-red-600 focus:outline-none" />
+        </div>
+
+        <div class="flex items-center justify-end gap-2.5 pt-1">
+          <button id="cancelQuestionFormBtn2" type="button" class="px-4 py-2 rounded-xl bg-white border border-slate-300 text-slate-700 font-bold text-xs sm:text-sm hover:bg-slate-100">
+            Huỷ
+          </button>
+          <button id="saveQuestionFormBtn" type="button" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm shadow-md flex items-center gap-1.5">
+            <span>💾</span> <span id="saveQuestionFormBtnText">Lưu Câu Hỏi</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Questions List Container -->
+      <div class="p-4 sm:p-6 overflow-y-auto space-y-3.5 flex-1" id="questionBankModalList">
+        <!-- Populated by JS -->
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="bg-slate-50 border-t px-6 py-3 flex flex-wrap items-center justify-between gap-2">
+        <span class="text-xs text-slate-500 font-semibold">💡 Mọi chỉnh sửa của bạn được lưu tự động và áp dụng ngay cho phòng chơi.</span>
+        <button id="closeQuestionModalBottomBtn" type="button" class="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 2: CLASSROOM CONNECTION GUIDE (Cách kết nối điện thoại cả lớp)
+       ========================================== -->
+  <div id="guideModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden items-center justify-center p-3 sm:p-6">
+    <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[88vh] flex flex-col shadow-2xl border-4 border-amber-400 overflow-hidden">
+      <div class="bg-gradient-to-r from-red-800 to-red-600 text-white px-6 py-4 flex items-center justify-between">
+        <h3 class="text-lg font-black">📱 Hướng Dẫn Tổ Chức Cho Cả Lớp Chơi Bằng Điện Thoại</h3>
+        <button id="closeGuideModalBtn" type="button" class="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 text-white font-black text-lg flex items-center justify-center">✕</button>
+      </div>
+      <div class="p-5 sm:p-6 overflow-y-auto space-y-4 text-sm text-slate-700 leading-relaxed">
+        <div class="bg-red-50 border-l-4 border-red-600 p-4 rounded-r-xl space-y-1">
+          <div class="font-black text-red-800">1. Chạy thử ngay tại đây (Trên máy tính của bạn):</div>
+          <p class="text-xs sm:text-sm">Bạn có thể bấm <strong>"Mở Phòng Chờ Trên Máy Chiếu (Host)"</strong> để lấy mã PIN, bấm <strong>"+ Thêm bạn chơi mẫu"</strong> rồi bấm <strong>"Chơi thử vai Người chơi ngay tại đây"</strong> (hoặc mở thêm 1 tab trình duyệt nữa) để trải nghiệm đầy đủ từ lúc vào phòng đến bục Top 5.</p>
+        </div>
+        <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-xl space-y-1.5">
+          <div class="font-black text-amber-900">2. Để cả lớp dùng điện thoại quét QR vào chơi trên giảng đường:</div>
+          <p class="text-xs sm:text-sm">Trang web này đã tích hợp sẵn công nghệ <strong>WebRTC (PeerJS) kết nối trực tiếp giữa điện thoại và máy chiếu qua mạng Internet</strong> mà không cần cài đặt server phức tạp:</p>
+          <ul class="list-disc pl-5 text-xs sm:text-sm space-y-1">
+            <li><strong>Bước 1:</strong> Tải file <code>.html</code> của game này về máy, sau đó kéo-thả miễn phí lên <strong>app.netlify.com/drop</strong> hoặc <strong>tiiny.host</strong> (chỉ mất 15 giây, không cần code thêm gì cả) để có 1 đường link công khai.</li>
+            <li><strong>Bước 2:</strong> Trên laptop cắm máy chiếu ở lớp, mở link đó và bấm <strong>"Mở Phòng Chờ Trên Máy Chiếu (Host)"</strong>. Mã QR và Mã PIN 6 số sẽ hiện to rõ trên màn hình.</li>
+            <li><strong>Bước 3:</strong> Các bạn dưới lớp lấy điện thoại quét mã QR trên máy chiếu, chọn Avatar hài hước, nhập Nickname và đua Top real-time!</li>
+          </ul>
+        </div>
+      </div>
+      <div class="bg-slate-50 border-t px-6 py-3 flex justify-end">
+        <button id="closeGuideModalBottomBtn" type="button" class="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm">Đã hiểu!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="w-full text-center py-3 px-4 text-xs text-red-100/80 font-medium">
+    <span>Môn Lịch sử Đảng Cộng sản Việt Nam • Nhóm 1 (SP1039 - CC01) • Đấu Trường Quizizz Real-time</span>
+  </footer>
+
+  <!-- ==========================================
+       APPLICATION LOGIC & REAL-TIME ENGINE
+       ========================================== -->
+  <script>
+    (function () {
+      'use strict';
+
+      // ==========================================
+      // 1. FUNNY AVATAR ROSTER (16 NHÂN VẬT HÀI HƯỚC)
+      // ==========================================
+      const FUNNY_AVATARS = [
+        { id: 'frog', emoji: '🐸', name: 'Ếch Xanh Uyên Bác' },
+        { id: 'cat', emoji: '😼', name: 'Mèo Hệ Tư Tưởng' },
+        { id: 'capy', emoji: '🦫', name: 'Capybara Ngoại Giao' },
+        { id: 'doge', emoji: '🐕', name: 'Chiba Học Bá' },
+        { id: 'duck', emoji: '🦆', name: 'Vịt Vàng Tốc Độ' },
+        { id: 'dino', emoji: '🦖', name: 'Khủng Long Đổi Mới' },
+        { id: 'panda', emoji: '🐼', name: 'Gấu Trúc Đa Phương' },
+        { id: 'fox', emoji: '🦊', name: 'Cáo Nhanh Nhạy' },
+        { id: 'octopus', emoji: '🐙', name: 'Bạch Tuộc Bách Khoa' },
+        { id: 'tiger', emoji: '🐯', name: 'Hổ Báo Mẫu Giáo' },
+        { id: 'owl', emoji: '🦉', name: 'Cú Đêm Ôn Bài' },
+        { id: 'monkey', emoji: '🐵', name: 'Khỉ Con Lanh Lợi' },
+        { id: 'unicorn', emoji: '🦄', name: 'Kỳ Lân Hội Nhập' },
+        { id: 'penguin', emoji: '🐧', name: 'Cánh Cụt Lạnh Lùng' },
+        { id: 'sloth', emoji: '🦥', name: 'Lười Nhanh Trí' },
+        { id: 'lion', emoji: '🦁', name: 'Sư Tử Đầu Đàn' }
+      ];
+
+      const FUNNY_RANDOM_NAMES = [
+        'Chiến Thần Ngoại Giao', 'Trùm Sử Đảng CC01', 'Capybara Yêu Hòa Bình',
+        'Đại Sứ Nhóm 1', 'Ông Hoàng Đa Phương', 'Bà Chúa Hội Nhập',
+        'Tốc Độ Ánh Sáng', 'Học Bá SP1039', 'Thánh Chọn Bừa Đúng',
+        'Đổi Mới 1986', 'Chiến Binh Điểm A+', 'Cây Hài Giảng Đường'
+      ];
+
+      // ==========================================
+      // 2. COMPLETE QUESTION BANK FROM USER'S DOCX
+      // ==========================================
+      const DEFAULT_QUESTION_BANK = [
+        // --- PHẦN 1.1 (10 Câu) ---
+        {
+          id: '1.1-1',
+          pack: 'part11',
+          sectionTitle: 'Phần 1.1 • Bối cảnh lịch sử & Yêu cầu thành lập Đảng',
+          question: 'Câu 1. Duy tân Minh Trị, Duy Tân ở Trung Quốc và Cách mạng Tân Hợi góp phần truyền bá tư tưởng nào vào Việt Nam?',
+          options: [
+            'A. Tư tưởng cách mạng vô sản.',
+            'B. Tư tưởng dân chủ tư sản.',
+            'C. Tư tưởng phong kiến truyền thống.',
+            'D. Tư tưởng phục tùng chính quyền thuộc địa.'
+          ],
+          correctIndex: 1,
+          explanation: 'Các phong trào này góp phần truyền bá tư tưởng dân chủ tư sản, tác động đến sĩ phu và trí thức yêu nước.'
+        },
+        {
+          id: '1.1-2',
+          pack: 'part11',
+          sectionTitle: 'Phần 1.1 • Bối cảnh lịch sử & Yêu cầu thành lập Đảng',
+          question: 'Câu 2. Quốc tế Cộng sản thành lập năm 1919 thúc đẩy sự liên kết giữa những phong trào nào?',
+          options: [
+            'A. Phong trào công nhân và phong trào cải cách phong kiến.',
+            'B. Phong trào dân chủ tư sản và phong trào cải cách phong kiến.',
+            'C. Phong trào giải phóng dân tộc và phong trào mở rộng thuộc địa.',
+            'D. Phong trào công nhân ở các nước tư bản và giải phóng dân tộc ở thuộc địa.'
+          ],
+          correctIndex: 3,
+          explanation: 'Quốc tế Cộng sản thúc đẩy liên kết phong trào công nhân ở các nước tư bản với phong trào giải phóng dân tộc ở thuộc địa.'
+        },
+        {
+          id: '1.1-3',
+          pack: 'part11',
+          sectionTitle: 'Phần 1.1 • Bối cảnh lịch sử & Yêu cầu thành lập Đảng',
+          question: 'Câu 3. Pháp chia Việt Nam thành ba xứ với chế độ quản lý khác nhau chủ yếu nhằm mục đích gì?',
+          options: [
+            'A. Chia rẽ và hạn chế sự thống nhất dân tộc.',
+            'B. Thống nhất bộ máy quản lý trên cả nước.',
+            'C. Trao quyền tự quyết cho từng vùng.',
+            'D. Xóa bỏ vai trò của bộ máy phong kiến bản xứ.'
+          ],
+          correctIndex: 0,
+          explanation: 'Chia thành ba xứ giúp Pháp chia rẽ và hạn chế sự thống nhất của dân tộc Việt Nam.'
+        },
+        {
+          id: '1.1-4',
+          pack: 'part11',
+          sectionTitle: 'Phần 1.1 • Bối cảnh lịch sử & Yêu cầu thành lập Đảng',
+          question: 'Câu 4. Kinh tế Việt Nam biến đổi thế nào dưới tác động của các cuộc khai thác thuộc địa?',
+          options: [
+            'A. Phát triển cân đối, chủ yếu phục vụ chính quốc.',
+            'B. Chỉ duy trì sản xuất phong kiến, không có yếu tố tư bản.',
+            'C. Có yếu tố tư bản nhưng mất cân đối và phụ thuộc Pháp.',
+            'D. Có yếu tố tư bản và dần độc lập với kinh tế Pháp.'
+          ],
+          correctIndex: 2,
+          explanation: 'Yếu tố sản xuất tư bản xuất hiện, nhưng kinh tế vẫn mất cân đối, phụ thuộc và phục vụ lợi ích của Pháp.'
+        },
+        {
+          id: '1.1-5',
+          pack: 'part11',
+          sectionTitle: 'Phần 1.1 • Bối cảnh lịch sử & Yêu cầu thành lập Đảng',
+          question: 'Câu 5. Cách mạng Việt Nam cần tiếp thu tư tưởng tiến bộ thế giới theo cách nào?',
+          options: [
+            'A. Áp dụng nguyên mẫu, ưu tiên kinh nghiệm nước ngoài.',
+            'B. Tiếp thu cách tổ chức, giữ nguyên đường lối cứu nước cũ.',
+            'C. Vận dụng phù hợp thực tiễn, kết hợp sức mạnh dân tộc và cách mạng quốc tế.',
+            'D. Dựa vào lực lượng quốc tế thay cho tập hợp lực lượng trong nước.'
+          ],
+          correctIndex: 2,
+          explanation: 'Tư tưởng tiến bộ cần được vận dụng phù hợp với Việt Nam, đồng thời kết hợp sức mạnh dân tộc với phong trào quốc tế.'
+        },
+        {
+          id: '1.1-6',
+          pack: 'part11',
+          sectionTitle: 'Phần 1.1 • Bối cảnh lịch sử & Yêu cầu thành lập Đảng',
+          question: 'Câu 6. Nhận định nào đúng về các giai cấp, tầng lớp Việt Nam thời thuộc địa?',
+          options: [
+            'A. Địa chủ có thái độ thống nhất trong việc chống Pháp.',
+            'B. Tư sản mại bản có quyền lợi đối lập với chính quyền thực dân.',
+            'C. Tiểu tư sản có địa vị kinh tế ổn định, tư tưởng thống nhất.',
+            'D. Tư sản dân tộc có tinh thần dân tộc nhưng tiềm lực kinh tế yếu.'
+          ],
+          correctIndex: 3,
+          explanation: 'Tư sản dân tộc có tinh thần dân tộc nhưng bị hạn chế bởi tiềm lực kinh tế yếu và sự lệ thuộc.'
+        },
+        {
+          id: '1.1-7',
+          pack: 'part11',
+          sectionTitle: 'Phần 1.1 • Bối cảnh lịch sử & Yêu cầu thành lập Đảng',
+          question: 'Câu 7. Điều gì tạo cơ sở cho mối liên hệ chặt chẽ giữa công nhân và nông dân Việt Nam?',
+          options: [
+            'A. Phần lớn công nhân xuất thân từ nông dân.',
+            'B. Cả hai đều chủ yếu làm việc trong nhà máy.',
+            'C. Cả hai đều mới xuất hiện từ các cuộc khai thác thuộc địa.',
+            'D. Phần lớn nông dân đã chuyển thành công nhân.'
+          ],
+          correctIndex: 0,
+          explanation: 'Phần lớn công nhân xuất thân từ nông dân nên có mối liên hệ chặt chẽ với giai cấp này.'
+        },
+        {
+          id: '1.1-8',
+          pack: 'part11',
+          sectionTitle: 'Phần 1.1 • Bối cảnh lịch sử & Yêu cầu thành lập Đảng',
+          question: 'Câu 8. Mâu thuẫn nào là chủ yếu nhất trong xã hội Việt Nam lúc bấy giờ?',
+          options: [
+            'A. Công nhân với tư sản dân tộc.',
+            'B. Nông dân với toàn bộ giai cấp địa chủ.',
+            'C. Toàn thể dân tộc với thực dân Pháp và phong kiến phản động.',
+            'D. Tư sản dân tộc với tư sản mại bản.'
+          ],
+          correctIndex: 2,
+          explanation: 'Mâu thuẫn dân tộc gay gắt khiến độc lập trở thành yêu cầu chung của các lực lượng yêu nước.'
+        },
+        {
+          id: '1.1-9',
+          pack: 'part11',
+          sectionTitle: 'Phần 1.1 • Bối cảnh lịch sử & Yêu cầu thành lập Đảng',
+          question: 'Câu 9. Vì sao mục tiêu độc lập cần gắn với ruộng đất, điều kiện lao động và quyền dân chủ?',
+          options: [
+            'A. Để mở rộng lực lượng và duy trì động lực đấu tranh.',
+            'B. Để thay mục tiêu giải phóng dân tộc bằng cải cách kinh tế.',
+            'C. Để giải quyết xong quyền lợi từng giai cấp trước khi giành độc lập.',
+            'D. Để mỗi giai cấp đấu tranh riêng theo quyền lợi của mình.'
+          ],
+          correctIndex: 0,
+          explanation: 'Gắn độc lập với lợi ích thiết thực giúp thu hút quần chúng và duy trì phong trào cách mạng.'
+        },
+        {
+          id: '1.1-10',
+          pack: 'part11',
+          sectionTitle: 'Phần 1.1 • Bối cảnh lịch sử & Yêu cầu thành lập Đảng',
+          question: 'Câu 10. Sự thất bại của các phong trào yêu nước đặt ra yêu cầu cấp thiết nào?',
+          options: [
+            'A. Tăng số lượng các cuộc khởi nghĩa riêng lẻ.',
+            'B. Giữ đường lối cũ nhưng mở rộng địa bàn đấu tranh.',
+            'C. Ưu tiên quyền lợi kinh tế thay cho mục tiêu độc lập.',
+            'D. Có tổ chức tiên phong với đường lối cứu nước đúng đắn.'
+          ],
+          correctIndex: 3,
+          explanation: 'Hạn chế về đường lối và tổ chức lãnh đạo đặt ra yêu cầu có tổ chức tiên phong với đường lối đúng đắn.'
+        },
+
+        // --- PHẦN 2.3 (10 Câu: Đường lối đối ngoại ĐH XII & ĐH XIII) ---
+        {
+          id: '2.3-1',
+          pack: 'part23',
+          sectionTitle: 'Phần 2.3 • Đường lối đối ngoại Đại hội XII & Đại hội XIII',
+          question: 'Câu 1. Đường lối đối ngoại được Đại hội XII tiếp tục khẳng định là gì?',
+          options: [
+            'A. Ưu tiên quan hệ với một số quốc gia lớn, hạn chế quan hệ với các nước khác.',
+            'B. Độc lập, tự chủ, hòa bình, hợp tác và phát triển.',
+            'C. Tập trung phát triển kinh tế trong nước, hạn chế hội nhập quốc tế.',
+            'D. Chỉ mở rộng quan hệ kinh tế, không chú trọng quan hệ chính trị và ngoại giao.'
+          ],
+          correctIndex: 1,
+          explanation: 'Khẳng định đường lối đối ngoại độc lập, tự chủ, hòa bình, hợp tác và phát triển.'
+        },
+        {
+          id: '2.3-2',
+          pack: 'part23',
+          sectionTitle: 'Phần 2.3 • Đường lối đối ngoại Đại hội XII & Đại hội XIII',
+          question: 'Câu 2. Vì sao Việt Nam cần đẩy mạnh đa phương hóa, đa dạng hóa quan hệ quốc tế?',
+          options: [
+            'A. Để tập trung toàn bộ nguồn lực vào một thị trường duy nhất.',
+            'B. Để giảm sự tham gia của Việt Nam vào các tổ chức quốc tế.',
+            'C. Để mở rộng quan hệ hợp tác, tranh thủ nguồn lực bên ngoài và bảo đảm lợi ích quốc gia – dân tộc.',
+            'D. Để thay thế hoàn toàn nguồn lực trong nước bằng nguồn lực nước ngoài.'
+          ],
+          correctIndex: 2,
+          explanation: 'Mở rộng quan hệ để tranh thủ nguồn lực, đồng thời bảo đảm lợi ích quốc gia – dân tộc.'
+        },
+        {
+          id: '2.3-3',
+          pack: 'part23',
+          sectionTitle: 'Phần 2.3 • Đường lối đối ngoại Đại hội XII & Đại hội XIII',
+          question: 'Câu 3. Theo chủ trương của Đại hội XII, hội nhập kinh tế quốc tế cần gắn với nhiệm vụ nào sau đây?',
+          options: [
+            'A. Đổi mới mô hình tăng trưởng, nâng cao năng suất lao động và sức cạnh tranh của nền kinh tế.',
+            'B. Ưu tiên nhập khẩu hàng hóa, hạn chế sản xuất trong nước.',
+            'C. Chỉ tập trung thu hút vốn đầu tư mà không cần đổi mới công nghệ.',
+            'D. Tách biệt phát triển kinh tế trong nước với quá trình hội nhập quốc tế.'
+          ],
+          correctIndex: 0,
+          explanation: 'Hội nhập phải gắn với đổi mới mô hình tăng trưởng và nâng cao sức cạnh tranh.'
+        },
+        {
+          id: '2.3-4',
+          pack: 'part23',
+          sectionTitle: 'Phần 2.3 • Đường lối đối ngoại Đại hội XII & Đại hội XIII',
+          question: 'Câu 4. Điểm nhấn trong chủ trương hội nhập quốc tế tại Đại hội XII là gì?',
+          options: [
+            'A. Hội nhập quốc tế chỉ tập trung vào lĩnh vực văn hóa.',
+            'B. Hội nhập kinh tế quốc tế là trọng tâm, gắn với lợi ích quốc gia – dân tộc và nhiệm vụ xây dựng, bảo vệ Tổ quốc.',
+            'C. Hội nhập quốc tế quan trọng hơn việc giữ vững độc lập, tự chủ.',
+            'D. Chỉ hội nhập với những quốc gia có cùng trình độ phát triển kinh tế.'
+          ],
+          correctIndex: 1,
+          explanation: 'Hội nhập kinh tế là trọng tâm, phục vụ phát triển và bảo vệ Tổ quốc.'
+        },
+        {
+          id: '2.3-5',
+          pack: 'part23',
+          sectionTitle: 'Phần 2.3 • Đường lối đối ngoại Đại hội XII & Đại hội XIII',
+          question: 'Câu 5. Một doanh nghiệp Việt Nam gặp khó khăn khi cạnh tranh với hàng hóa nước ngoài sau khi các cam kết thương mại được thực hiện. Tình huống này phản ánh thách thức nào của hội nhập quốc tế?',
+          options: [
+            'A. Hội nhập quốc tế làm chấm dứt mọi cơ hội phát triển của doanh nghiệp trong nước.',
+            'B. Việt Nam không còn khả năng hợp tác kinh tế với các quốc gia khác.',
+            'C. Hội nhập quốc tế khiến việc nâng cao năng suất lao động không còn cần thiết.',
+            'D. Sức ép cạnh tranh gia tăng, đòi hỏi doanh nghiệp nâng cao năng lực cạnh tranh.'
+          ],
+          correctIndex: 3,
+          explanation: 'Cạnh tranh gia tăng là thách thức đòi hỏi doanh nghiệp nâng cao năng lực.'
+        },
+        {
+          id: '2.3-6',
+          pack: 'part23',
+          sectionTitle: 'Phần 2.3 • Đường lối đối ngoại Đại hội XII & Đại hội XIII',
+          question: 'Câu 6. Đại hội XIII tiếp tục nhấn mạnh yêu cầu nào trong việc thực hiện đường lối đối ngoại?',
+          options: [
+            'A. Thu hẹp quan hệ quốc tế để tập trung phát triển nội lực.',
+            'B. Phụ thuộc nhiều hơn vào các nguồn lực bên ngoài.',
+            'C. Kiên trì độc lập, tự chủ, hòa bình, hợp tác và phát triển; đẩy mạnh đa phương hóa, đa dạng hóa quan hệ quốc tế.',
+            'D. Chỉ ưu tiên quan hệ với các đối tác có lợi ích kinh tế tương đồng.'
+          ],
+          correctIndex: 2,
+          explanation: 'Đại hội XIII tiếp tục kế thừa các nguyên tắc đối ngoại cơ bản: độc lập, tự chủ, hòa bình, hợp tác, phát triển; đa phương hóa, đa dạng hóa.'
+        },
+        {
+          id: '2.3-7',
+          pack: 'part23',
+          sectionTitle: 'Phần 2.3 • Đường lối đối ngoại Đại hội XII & Đại hội XIII',
+          question: 'Câu 7. Việt Nam vừa mở rộng hợp tác kinh tế với các nước, vừa tăng cường quốc phòng, an ninh và bảo vệ chủ quyền. Cách làm này thể hiện quan điểm nào của Đại hội XIII?',
+          options: [
+            'A. Kết hợp phát triển kinh tế với củng cố quốc phòng, an ninh và bảo vệ chủ quyền quốc gia.',
+            'B. Đặt lợi ích kinh tế cao hơn mọi lợi ích khác.',
+            'C. Tách biệt hoàn toàn hoạt động đối ngoại với nhiệm vụ bảo vệ Tổ quốc.',
+            'D. Hạn chế hợp tác quốc tế để tránh các thách thức về an ninh.'
+          ],
+          correctIndex: 0,
+          explanation: 'Phát triển kinh tế cần đi đôi với quốc phòng, an ninh và bảo vệ chủ quyền quốc gia.'
+        },
+        {
+          id: '2.3-8',
+          pack: 'part23',
+          sectionTitle: 'Phần 2.3 • Đường lối đối ngoại Đại hội XII & Đại hội XIII',
+          question: 'Câu 8. Việt Nam tham gia các hoạt động hợp tác quốc tế, đóng góp vào việc duy trì hòa bình và giải quyết các vấn đề chung. Điều này phù hợp với định hướng nào?',
+          options: [
+            'A. Chỉ bảo vệ lợi ích trong nước, không tham gia các vấn đề quốc tế.',
+            'B. Khẳng định vai trò là bạn, đối tác tin cậy và thành viên có trách nhiệm của cộng đồng quốc tế.',
+            'C. Chỉ tham gia hợp tác khi có lợi ích kinh tế trực tiếp.',
+            'D. Hạn chế trách nhiệm quốc tế để tập trung phát triển đất nước.'
+          ],
+          correctIndex: 1,
+          explanation: 'Đây là biểu hiện vai trò là bạn, đối tác tin cậy và thành viên có trách nhiệm của Việt Nam trong cộng đồng quốc tế.'
+        },
+        {
+          id: '2.3-9',
+          pack: 'part23',
+          sectionTitle: 'Phần 2.3 • Đường lối đối ngoại Đại hội XII & Đại hội XIII',
+          question: 'Câu 9. Điểm kế thừa và phát triển trong đường lối đối ngoại từ Đại hội XII đến Đại hội XIII được thể hiện rõ nhất ở phương án nào?',
+          options: [
+            'A. Chuyển từ độc lập, tự chủ sang phụ thuộc vào các đối tác quốc tế.',
+            'B. Chỉ chú trọng hội nhập kinh tế, không quan tâm đến quốc phòng và an ninh.',
+            'C. Giữ nguyên mọi phương thức đối ngoại, không cần thích ứng với tình hình mới.',
+            'D. Kiên định nguyên tắc độc lập, tự chủ, đồng thời chủ động, tích cực hội nhập quốc tế và kết hợp nội lực với ngoại lực.'
+          ],
+          correctIndex: 3,
+          explanation: 'Kế thừa nguyên tắc nhất quán độc lập, tự chủ nhưng tiếp tục chủ động, tích cực hội nhập quốc tế và kết hợp nội lực với ngoại lực.'
+        },
+        {
+          id: '2.3-10',
+          pack: 'part23',
+          sectionTitle: 'Phần 2.3 • Đường lối đối ngoại Đại hội XII & Đại hội XIII',
+          question: 'Câu 10. Việt Nam thu hút vốn đầu tư, tiếp nhận công nghệ và kinh nghiệm quản lý từ nước ngoài, đồng thời phát triển năng lực trong nước để không bị phụ thuộc. Đây là biểu hiện của quan điểm nào?',
+          options: [
+            'A. Dựa chủ yếu vào nguồn lực bên ngoài để phát triển đất nước.',
+            'B. Hạn chế tiếp nhận công nghệ nước ngoài nhằm bảo vệ nền kinh tế.',
+            'C. Kết hợp sức mạnh nội lực với ngoại lực, gắn hội nhập quốc tế với giữ vững độc lập, tự chủ.',
+            'D. Ưu tiên hội nhập quốc tế hơn mọi nhiệm vụ phát triển trong nước.'
+          ],
+          correctIndex: 2,
+          explanation: 'Tận dụng nguồn lực bên ngoài nhưng vẫn phát huy nội lực và giữ vững độc lập, tự chủ.'
+        },
+
+        // --- PHẦN 3.4 (5 Câu: Vận dụng thực tiễn đường lối đối ngoại) ---
+        {
+          id: '3.4-1',
+          pack: 'part34',
+          sectionTitle: 'Phần 3.4 • Thực tiễn Đối ngoại & Hội nhập Quốc tế thời kỳ Đổi mới',
+          question: 'Câu 1. Việc Việt Nam duy trì quan hệ hợp tác với nhiều quốc gia có chế độ chính trị khác nhau thể hiện rõ nhất chủ trương nào?',
+          options: [
+            'A. Tập trung phát triển quan hệ với một số quốc gia có tiềm lực kinh tế lớn.',
+            'B. Ưu tiên quan hệ với các quốc gia có cùng chế độ chính trị và định hướng.',
+            'C. Thực hiện đường lối đối ngoại độc lập, tự chủ, đa phương hóa, đa dạng hóa.',
+            'D. Giảm sự tham gia vào các cơ chế hợp tác đa phương để bảo đảm độc lập.'
+          ],
+          correctIndex: 2,
+          explanation: 'Duy trì quan hệ với nhiều quốc gia có chế độ chính trị khác nhau thể hiện đường lối đối ngoại độc lập, tự chủ, đa phương hóa, đa dạng hóa.'
+        },
+        {
+          id: '3.4-2',
+          pack: 'part34',
+          sectionTitle: 'Phần 3.4 • Thực tiễn Đối ngoại & Hội nhập Quốc tế thời kỳ Đổi mới',
+          question: 'Câu 2. Việc Việt Nam tham gia các hiệp định CPTPP, EVFTA và RCEP phản ánh nội dung nào của đường lối đối ngoại thời kỳ Đổi mới?',
+          options: [
+            'A. Chủ động hội nhập kinh tế quốc tế và mở rộng quan hệ thương mại.',
+            'B. Tập trung phát triển kinh tế trong nước và hạn chế quan hệ quốc tế.',
+            'C. Chỉ ưu tiên hợp tác thương mại với các quốc gia thuộc khu vực châu Á.',
+            'D. Giảm thu hút vốn đầu tư nước ngoài và hạn chế cạnh tranh quốc tế.'
+          ],
+          correctIndex: 0,
+          explanation: 'Tham gia các FTA thế hệ mới như CPTPP, EVFTA, RCEP phản ánh sự chủ động, tích cực hội nhập kinh tế quốc tế và mở rộng thương mại.'
+        },
+        {
+          id: '3.4-3',
+          pack: 'part34',
+          sectionTitle: 'Phần 3.4 • Thực tiễn Đối ngoại & Hội nhập Quốc tế thời kỳ Đổi mới',
+          question: 'Câu 3. Việc Việt Nam đăng cai Lễ mở ký Công ước Liên hợp quốc về chống tội phạm mạng năm 2025 thể hiện điều gì?',
+          options: [
+            'A. Việt Nam tập trung giải quyết các vấn đề an ninh trong phạm vi quốc gia.',
+            'B. Việt Nam chủ động đóng góp vào giải quyết những vấn đề chung toàn cầu.',
+            'C. Việt Nam ưu tiên hợp tác song phương thay vì tham gia các tổ chức quốc tế.',
+            'D. Việt Nam chỉ chú trọng quan hệ quốc tế trong lĩnh vực an ninh và quốc phòng.'
+          ],
+          correctIndex: 1,
+          explanation: 'Đăng cai Lễ mở ký Công ước LHQ về chống tội phạm mạng thể hiện Việt Nam chủ động đóng góp giải quyết những vấn đề chung toàn cầu.'
+        },
+        {
+          id: '3.4-4',
+          pack: 'part34',
+          sectionTitle: 'Phần 3.4 • Thực tiễn Đối ngoại & Hội nhập Quốc tế thời kỳ Đổi mới',
+          question: 'Câu 4. Trong bối cảnh cạnh tranh chiến lược giữa các nước lớn, yêu cầu quan trọng đối với công tác đối ngoại của Việt Nam là gì?',
+          options: [
+            'A. Tập trung quan hệ với một cường quốc để tranh thủ nguồn lực phát triển.',
+            'B. Hạn chế mở rộng quan hệ quốc tế nhằm tránh những tác động từ bên ngoài.',
+            'C. Ưu tiên các lợi ích kinh tế trước mắt và giảm tham gia hợp tác đa phương.',
+            'D. Giữ vững độc lập, tự chủ và linh hoạt trong quan hệ với các quốc gia.'
+          ],
+          correctIndex: 3,
+          explanation: 'Trước cạnh tranh chiến lược giữa các nước lớn, đối ngoại Việt Nam kiên định giữ vững độc lập, tự chủ và linh hoạt ("ngoại giao cây tre").'
+        },
+        {
+          id: '3.4-5',
+          pack: 'part34',
+          sectionTitle: 'Phần 3.4 • Thực tiễn Đối ngoại & Hội nhập Quốc tế thời kỳ Đổi mới',
+          question: 'Câu 5. Trong bối cảnh hội nhập quốc tế hiện nay, sinh viên cần thực hiện hành động nào phù hợp nhất?',
+          options: [
+            'A. Chỉ tập trung vào chuyên môn và hạn chế tham gia các hoạt động quốc tế.',
+            'B. Ưu tiên tiếp thu văn hóa nước ngoài và giảm quan tâm đến văn hóa dân tộc.',
+            'C. Nâng cao ngoại ngữ, chuyên môn, tích cực hội nhập và giữ gìn bản sắc.',
+            'D. Chủ yếu tìm kiếm cơ hội học tập quốc tế và ít quan tâm đến vấn đề trong nước.'
+          ],
+          correctIndex: 2,
+          explanation: 'Sinh viên cần chủ động nâng cao trình độ ngoại ngữ, chuyên môn, tích cực hội nhập quốc tế đồng thời giữ gìn bản sắc văn hóa dân tộc.'
+        }
+      ];
+
+      // ==========================================
+      // 3. WEB AUDIO API GAME SHOW SOUND ENGINE
+      // ==========================================
+      let soundEnabled = true;
+      let audioCtx = null;
+
+      function ensureAudioCtx() {
+        if (!soundEnabled) return null;
+        try {
+          if (!audioCtx) {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (AudioContextClass) audioCtx = new AudioContextClass();
+          }
+          if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+          }
+        } catch (e) {
+          // Ignore audio errors on restricted devices
+        }
+        return audioCtx;
+      }
+
+      function playTone(freq, type, duration, delay = 0, gainVal = 0.14) {
+        const ctx = ensureAudioCtx();
+        if (!ctx) return;
+        try {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
+          gain.gain.setValueAtTime(gainVal, ctx.currentTime + delay);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(ctx.currentTime + delay);
+          osc.stop(ctx.currentTime + delay + duration);
+        } catch (e) {}
+      }
+
+      const SoundFX = {
+        click() {
+          playTone(580, 'sine', 0.07, 0, 0.1);
+        },
+        tick(isCritical) {
+          if (isCritical) {
+            // Urgent double alarm beep in final 5 seconds
+            playTone(880, 'square', 0.09, 0, 0.15);
+            playTone(1174, 'square', 0.09, 0.12, 0.15);
+          } else {
+            playTone(440, 'sine', 0.04, 0, 0.04);
+          }
+        },
+        correct() {
+          // Cheerful game show victory chord
+          playTone(523.25, 'triangle', 0.14, 0, 0.18);
+          playTone(659.25, 'triangle', 0.14, 0.09, 0.18);
+          playTone(783.99, 'triangle', 0.16, 0.18, 0.18);
+          playTone(1046.50, 'triangle', 0.38, 0.27, 0.22);
+        },
+        wrong() {
+          // Funny "womp womp womp" sad trombone sound
+          playTone(392.00, 'sawtooth', 0.22, 0, 0.14);
+          playTone(369.99, 'sawtooth', 0.22, 0.22, 0.14);
+          playTone(349.23, 'sawtooth', 0.22, 0.44, 0.14);
+          playTone(311.13, 'sawtooth', 0.48, 0.66, 0.16);
+        },
+        leaderboard() {
+          playTone(440, 'sine', 0.1, 0, 0.12);
+          playTone(554.37, 'sine', 0.1, 0.08, 0.12);
+          playTone(659.25, 'sine', 0.2, 0.16, 0.15);
+        },
+        podiumFanfare() {
+          const notes = [523.25, 659.25, 783.99, 1046.50, 783.99, 1046.50];
+          const delays = [0, 0.12, 0.24, 0.36, 0.56, 0.72];
+          const durations = [0.12, 0.12, 0.12, 0.2, 0.14, 0.55];
+          notes.forEach((n, i) => playTone(n, 'triangle', durations[i], delays[i], 0.2));
+        }
+      };
+
+      // ==========================================
+      // 4. CELEBRATION CONFETTI & SAD EMOJI EFFECTS
+      // ==========================================
+      function fireCorrectConfetti() {
+        if (typeof window.confetti === 'function') {
+          window.confetti({
+            particleCount: 85,
+            spread: 75,
+            origin: { y: 0.65 },
+            colors: ['#dc2626', '#fbbf24', '#ffffff', '#ef4444', '#f59e0b']
+          });
+          setTimeout(() => {
+            window.confetti({
+              particleCount: 50,
+              angle: 60,
+              spread: 55,
+              origin: { x: 0, y: 0.65 },
+              colors: ['#dc2626', '#fbbf24', '#ffffff']
+            });
+            window.confetti({
+              particleCount: 50,
+              angle: 120,
+              spread: 55,
+              origin: { x: 1, y: 0.65 },
+              colors: ['#dc2626', '#fbbf24', '#ffffff']
+            });
+          }, 180);
+        }
+      }
+
+      function firePodiumGrandConfetti() {
+        if (typeof window.confetti !== 'function') return;
+        const duration = 3000;
+        const end = Date.now() + duration;
+        (function frame() {
+          window.confetti({
+            particleCount: 5,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0 },
+            colors: ['#dc2626', '#fbbf24', '#ffffff', '#fde047']
+          });
+          window.confetti({
+            particleCount: 5,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1 },
+            colors: ['#dc2626', '#fbbf24', '#ffffff', '#fde047']
+          });
+          if (Date.now() < end) {
+            requestAnimationFrame(frame);
+          }
+        })();
+      }
+
+      function fireSadCondolenceEmojis() {
+        const container = document.getElementById('sadEmojiContainer');
+        if (!container) return;
+        container.innerHTML = '';
+        const sadIcons = ['😭', '😢', '💔', '🥀', '🌧️', '🤦', '🦆', '🥺', '💦', '📉'];
+        for (let i = 0; i < 22; i++) {
+          const span = document.createElement('span');
+          span.className = 'sad-emoji-particle';
+          span.textContent = sadIcons[i % sadIcons.length];
+          span.style.left = Math.round(5 + Math.random() * 90) + 'vw';
+          span.style.top = Math.round(45 + Math.random() * 40) + 'vh';
+          span.style.fontSize = Math.round(28 + Math.random() * 26) + 'px';
+          span.style.animationDelay = (Math.random() * 0.45).toFixed(2) + 's';
+          container.appendChild(span);
+        }
+        setTimeout(() => {
+          container.innerHTML = '';
+        }, 3000);
+      }
+
+      // ==========================================
+      // 5. STATE & REAL-TIME MULTIPLAYER ENGINE
+      // ==========================================
+      const STORAGE_KEY_QUESTIONS = 'lsd_quiz_custom_questions_v1';
+      let QUESTION_BANK = [];
+
+      function loadQuestionBankFromStorage() {
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY_QUESTIONS);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              QUESTION_BANK = parsed;
+              return;
+            }
+          }
+        } catch (e) {}
+        QUESTION_BANK = JSON.parse(JSON.stringify(DEFAULT_QUESTION_BANK));
+      }
+
+      function saveQuestionBankToStorage() {
+        try {
+          localStorage.setItem(STORAGE_KEY_QUESTIONS, JSON.stringify(QUESTION_BANK));
+        } catch (e) {}
+      }
+
+      loadQuestionBankFromStorage();
+
+      let selectedAvatar = FUNNY_AVATARS[0];
+      let currentPackKey = 'all';
+      let activeQuestions = [...QUESTION_BANK];
+
+      // Room & Multiplayer State
+      let roomPin = '';
+      let isHostMode = false;
+      let gameStarted = false;
+      let peerInstance = null;
+      let hostConnections = []; // Array of PeerJS DataConnections (on Host)
+      let playerToHostConn = null; // PeerJS DataConnection (on Player)
+      let broadcastChannel = null;
+      let botSimulationTimer = null;
+
+      // Players Map: id -> { id, name, avatar, score, streak, maxStreak, correctCount, answeredCount, lastDelta, prevRank, isBot }
+      let playersMap = {};
+
+      // Local Player Quiz State
+      let localPlayerId = 'player_' + Math.random().toString(36).substring(2, 9);
+      let currentQuestionIdx = 0;
+      let questionTimer = null;
+      let timeLeft = 35;
+      let hasAnsweredCurrent = false;
+
+      // Funny condolence messages when answering wrong
+      const FUNNY_WRONG_MESSAGES = [
+        'Ối dồi ôi trượt mất tiêu rồi! Đừng buồn, xem ngay đáp án đúng bên dưới để gỡ câu sau nhé! 😭💔',
+        'Sai một ly đi một dặm rồi bạn ơi! Gãy chuỗi Streak nhưng kiến thức đã nạp thêm! 🥀😢',
+        'Chia buồn sâu sắc! Cú lừa ngoạn mục của đề bài, nhớ kỹ đáp án đúng bên dưới nha! 🌧️🦆',
+        'Tiếc quá đi mất! Chậm lại 1 nhịp đọc kỹ đáp án đúng để câu sau bứt phá lên Top nhé! 🤦💔'
+      ];
+
+      const FUNNY_CORRECT_MESSAGES = [
+        'Quá đỉnh luôn! Kiến thức Lịch sử Đảng chuẩn chỉnh không lệch phát nào! 🎉🔥',
+        'Xuất sắc! Tốc độ ánh sáng + Tư duy nhạy bén, xứng danh Chiến thần Đối ngoại! 🚀⭐',
+        'Chuẩn 100%! Cứ đà này bục vinh danh Top 5 chắc chắn gọi tên bạn! 🏆🎊'
+      ];
+
+      // ==========================================
+      // 6. HELPER FUNCTIONS
+      // ==========================================
+      function showToast(title, message, icon = '🔔') {
+        const box = document.getElementById('toastBox');
+        document.getElementById('toastIcon').textContent = icon;
+        document.getElementById('toastTitle').textContent = title;
+        document.getElementById('toastMessage').textContent = message;
+        box.classList.remove('hidden');
+        box.classList.add('flex');
+        clearTimeout(box._hideTimer);
+        box._hideTimer = setTimeout(() => {
+          box.classList.add('hidden');
+          box.classList.remove('flex');
+        }, 3600);
+      }
+
+      function filterQuestionsByPack() {
+        currentPackKey = 'all';
+        activeQuestions = [...QUESTION_BANK];
+        const totalAll = QUESTION_BANK.length;
+
+        const headerCountEl = document.getElementById('headerQuestionCount');
+        if (headerCountEl) headerCountEl.textContent = totalAll;
+        const hostSetupCountEl = document.getElementById('hostSetupQuestionCount');
+        if (hostSetupCountEl) hostSetupCountEl.textContent = totalAll;
+        const packLabelEl = document.getElementById('hostSelectedPackLabel');
+        if (packLabelEl) packLabelEl.textContent = `${totalAll} câu`;
+      }
+
+      function getSortedPlayers() {
+        return Object.values(playersMap).sort((a, b) => {
+          if (b.score !== a.score) return b.score - a.score;
+          if (b.correctCount !== a.correctCount) return b.correctCount - a.correctCount;
+          return a.name.localeCompare(b.name);
+        });
+      }
+
+      function switchView(viewId) {
+        const views = ['viewLanding', 'viewHost', 'viewPlayerGame', 'viewPodium'];
+        views.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) {
+            if (id === viewId) el.classList.remove('hidden');
+            else el.classList.add('hidden');
+          }
+        });
+        // Always stop 5s red warning when switching views
+        setRedWarningOverlay(false);
+      }
+
+      function setRedWarningOverlay(active) {
+        const overlay = document.getElementById('redWarningOverlay');
+        const timerBox = document.getElementById('timerBox');
+        if (!overlay) return;
+        if (active) {
+          overlay.classList.remove('hidden');
+          overlay.classList.add('danger-warning-active');
+          if (timerBox) timerBox.classList.add('timer-critical');
+        } else {
+          overlay.classList.add('hidden');
+          overlay.classList.remove('danger-warning-active');
+          if (timerBox) timerBox.classList.remove('timer-critical');
+        }
+      }
+
+      // ==========================================
+      // 7. REAL-TIME NETWORKING (PeerJS + BroadcastChannel)
+      // ==========================================
+      function initBroadcastChannel() {
+        try {
+          if ('BroadcastChannel' in window && !broadcastChannel) {
+            broadcastChannel = new BroadcastChannel('lsd_quiz_channel_cc01');
+            broadcastChannel.onmessage = (ev) => {
+              if (ev && ev.data) handleNetworkMessage(ev.data, null);
+            };
+          }
+        } catch (e) {}
+      }
+
+      function sendNetworkMessage(payload) {
+        // 1. BroadcastChannel for same-browser tabs
+        try {
+          if (broadcastChannel) broadcastChannel.postMessage(payload);
+        } catch (e) {}
+
+        // 2. PeerJS WebRTC connections
+        if (isHostMode) {
+          hostConnections.forEach(conn => {
+            try {
+              if (conn && conn.open) conn.send(payload);
+            } catch (e) {}
+          });
+        } else if (playerToHostConn && playerToHostConn.open) {
+          try {
+            playerToHostConn.send(payload);
+          } catch (e) {}
+        }
+      }
+
+      function handleNetworkMessage(msg, sourceConn) {
+        if (!msg || !msg.type) return;
+
+        if (msg.type === 'PLAYER_JOIN' && isHostMode) {
+          const p = msg.player;
+          if (p && p.id) {
+            playersMap[p.id] = {
+              id: p.id,
+              name: p.name,
+              avatar: p.avatar,
+              score: playersMap[p.id] ? playersMap[p.id].score : 0,
+              streak: playersMap[p.id] ? playersMap[p.id].streak : 0,
+              maxStreak: playersMap[p.id] ? playersMap[p.id].maxStreak : 0,
+              correctCount: playersMap[p.id] ? playersMap[p.id].correctCount : 0,
+              answeredCount: playersMap[p.id] ? playersMap[p.id].answeredCount : 0,
+              lastDelta: 0,
+              prevRank: null,
+              isBot: false
+            };
+            renderHostLobbyPlayers();
+            renderHostLiveDashboard(`${p.avatar.emoji} ${p.name} vừa vào phòng!`);
+            showToast('Người chơi mới!', `${p.avatar.emoji} ${p.name} đã tham gia phòng ${roomPin}`, '🎉');
+            broadcastRoomSync();
+          }
+        } else if (msg.type === 'PLAYER_PROGRESS' && isHostMode) {
+          const p = msg.player;
+          if (p && p.id) {
+            playersMap[p.id] = p;
+            renderHostLiveDashboard(msg.tickerText || `${p.avatar.emoji} ${p.name} vừa trả lời câu ${p.answeredCount}!`);
+            broadcastRoomSync();
+          }
+        } else if (msg.type === 'ROOM_SYNC') {
+          if (Array.isArray(msg.questionBank) && msg.questionBank.length > 0 && !isHostMode) {
+            QUESTION_BANK = msg.questionBank;
+            filterQuestionsByPack(msg.packKey || currentPackKey);
+          }
+          if (msg.playersMap) {
+            // Merge remote players into local map (preserving local player's fresher score if needed)
+            Object.keys(msg.playersMap).forEach(pid => {
+              if (pid !== localPlayerId || !playersMap[localPlayerId]) {
+                playersMap[pid] = msg.playersMap[pid];
+              }
+            });
+          }
+          if (msg.packKey && msg.packKey !== currentPackKey && !gameStarted) {
+            filterQuestionsByPack(msg.packKey);
+          }
+        } else if (msg.type === 'HOST_END_GAME') {
+          if (msg.playersMap) playersMap = msg.playersMap;
+          showFinalPodiumScreen();
+        }
+      }
+
+      function broadcastRoomSync() {
+        sendNetworkMessage({
+          type: 'ROOM_SYNC',
+          roomPin,
+          packKey: currentPackKey,
+          questionBank: QUESTION_BANK,
+          playersMap
+        });
+      }
+
+      function setupHostPeer(pin) {
+        initBroadcastChannel();
+        const statusEl = document.getElementById('peerStatusText');
+        const badgeEl = document.getElementById('connectionBadge');
+        if (typeof window.Peer !== 'function') {
+          if (statusEl) statusEl.textContent = '⚡ Đã bật đồng bộ Phòng chơi nội bộ';
+          return;
+        }
+        try {
+          if (peerInstance) peerInstance.destroy();
+          const peerId = 'lsd-quiz-cc01-' + pin;
+          peerInstance = new window.Peer(peerId);
+          peerInstance.on('open', () => {
+            if (statusEl) statusEl.textContent = '🟢 Sẵn sàng kết nối điện thoại Real-time (Mã phòng: ' + pin + ')';
+            if (badgeEl) {
+              badgeEl.classList.remove('hidden');
+              badgeEl.classList.add('inline-flex');
+            }
+          });
+          peerInstance.on('connection', (conn) => {
+            hostConnections.push(conn);
+            conn.on('data', (data) => handleNetworkMessage(data, conn));
+            conn.on('open', () => {
+              conn.send({
+                type: 'ROOM_SYNC',
+                roomPin,
+                packKey: currentPackKey,
+                playersMap
+              });
+            });
+          });
+          peerInstance.on('error', () => {
+            if (statusEl) statusEl.textContent = '🟢 Phòng chơi đã sẵn sàng (Đồng bộ trực tiếp)';
+          });
+        } catch (e) {}
+      }
+
+      function connectPlayerToHostPeer(pin, playerObj) {
+        initBroadcastChannel();
+        // Announce via BroadcastChannel immediately
+        sendNetworkMessage({ type: 'PLAYER_JOIN', player: playerObj });
+
+        if (!pin || typeof window.Peer !== 'function') return;
+        try {
+          if (peerInstance) peerInstance.destroy();
+          peerInstance = new window.Peer();
+          peerInstance.on('open', () => {
+            const conn = peerInstance.connect('lsd-quiz-cc01-' + pin.trim(), { reliable: true });
+            playerToHostConn = conn;
+            conn.on('open', () => {
+              const badgeEl = document.getElementById('connectionBadge');
+              if (badgeEl) {
+                badgeEl.classList.remove('hidden');
+                badgeEl.classList.add('inline-flex');
+              }
+              conn.send({ type: 'PLAYER_JOIN', player: playerObj });
+            });
+            conn.on('data', (data) => handleNetworkMessage(data, conn));
+          });
+        } catch (e) {}
+      }
+
+      // ==========================================
+      // 8. SIMULATED CLASSMATES (BOTS FOR LIVE RACE & DEMO)
+      // ==========================================
+      const CLASSMATE_BOT_PROFILES = [
+        { name: 'Minh Tuấn (Tổ 1)', avatar: FUNNY_AVATARS[2], skill: 0.82 },
+        { name: 'Khánh Linh (Bí thư)', avatar: FUNNY_AVATARS[1], skill: 0.88 },
+        { name: 'Hoàng Nam (CC01)', avatar: FUNNY_AVATARS[3], skill: 0.75 },
+        { name: 'Thảo Vy (Nhóm 2)', avatar: FUNNY_AVATARS[6], skill: 0.79 },
+        { name: 'Quốc Bảo (Tổ 3)', avatar: FUNNY_AVATARS[4], skill: 0.70 },
+        { name: 'Ngọc Ánh (Lớp phó)', avatar: FUNNY_AVATARS[7], skill: 0.85 }
+      ];
+
+      function ensureSimulatedClassmates(count = 5) {
+        const existingBots = Object.values(playersMap).filter(p => p.isBot);
+        let added = 0;
+        for (let i = 0; i < CLASSMATE_BOT_PROFILES.length && added < count; i++) {
+          const prof = CLASSMATE_BOT_PROFILES[i];
+          const botId = 'bot_cc01_' + i;
+          if (!playersMap[botId]) {
+            playersMap[botId] = {
+              id: botId,
+              name: prof.name,
+              avatar: prof.avatar,
+              score: 0,
+              streak: 0,
+              maxStreak: 0,
+              correctCount: 0,
+              answeredCount: 0,
+              lastDelta: 0,
+              prevRank: null,
+              isBot: true,
+              skill: prof.skill
+            };
+            added++;
+          }
+        }
+        return added;
+      }
+
+      function stepBotsForQuestion(qIndex) {
+        const totalQ = activeQuestions.length;
+        Object.values(playersMap).forEach(bot => {
+          if (!bot.isBot) return;
+          if (bot.answeredCount > qIndex) return;
+          const isCorrect = Math.random() < (bot.skill || 0.78);
+          const simulatedTimeLeft = Math.floor(8 + Math.random() * 24); // Answered with 8..31s left
+          bot.answeredCount = Math.min(totalQ, qIndex + 1);
+          if (isCorrect) {
+            bot.streak += 1;
+            if (bot.streak > bot.maxStreak) bot.maxStreak = bot.streak;
+            bot.correctCount += 1;
+            const speedBonus = Math.round((simulatedTimeLeft / 35) * 500);
+            const streakBonus = Math.min(500, (bot.streak - 1) * 100);
+            const earned = 500 + speedBonus + streakBonus;
+            bot.score += earned;
+            bot.lastDelta = earned;
+          } else {
+            bot.streak = 0;
+            bot.lastDelta = 0;
+          }
+        });
+      }
+
+      function startHostBotSimulationLoop() {
+        clearInterval(botSimulationTimer);
+        botSimulationTimer = setInterval(() => {
+          const bots = Object.values(playersMap).filter(p => p.isBot && p.answeredCount < activeQuestions.length);
+          if (bots.length === 0) {
+            clearInterval(botSimulationTimer);
+            return;
+          }
+          // Pick a random bot to answer their next question
+          const bot = bots[Math.floor(Math.random() * bots.length)];
+          stepBotsForQuestion(bot.answeredCount);
+          const statusMsg = bot.lastDelta > 0
+            ? `${bot.avatar.emoji} ${bot.name} vừa ghi +${bot.lastDelta} đ (Chuỗi 🔥x${bot.streak})!`
+            : `${bot.avatar.emoji} ${bot.name} vừa trượt câu số ${bot.answeredCount} 😭`;
+          renderHostLiveDashboard(statusMsg);
+          broadcastRoomSync();
+        }, 2600);
+      }
+
+      // ==========================================
+      // 9. HOST SCREEN LOGIC (Màn hình Máy chiếu)
+      // ==========================================
+      function openHostLobby() {
+        SoundFX.click();
+        isHostMode = true;
+        gameStarted = false;
+        filterQuestionsByPack();
+
+        // Generate 6-digit PIN if not yet created
+        if (!roomPin) {
+          roomPin = String(Math.floor(100000 + Math.random() * 900000));
+        }
+
+        document.getElementById('hostPinDisplay').textContent = roomPin;
+        document.getElementById('hostLivePin').textContent = roomPin;
+
+        // Build join URL and QR Code
+        const baseUrl = window.location.href.split('?')[0].split('#')[0];
+        const joinUrl = `${baseUrl}?pin=${roomPin}`;
+        document.getElementById('hostJoinUrlText').textContent = joinUrl;
+
+        const qrBox = document.getElementById('hostQrContainer');
+        qrBox.innerHTML = '';
+        if (typeof window.QRCode === 'function') {
+          new window.QRCode(qrBox, {
+            text: joinUrl,
+            width: 148,
+            height: 148,
+            colorDark: '#7f1d1d',
+            colorLight: '#ffffff'
+          });
+        }
+
+        document.getElementById('hostLobbyPanel').classList.remove('hidden');
+        document.getElementById('hostLivePanel').classList.add('hidden');
+        document.getElementById('hostEndGameBtn').classList.add('hidden');
+
+        setupHostPeer(roomPin);
+        renderHostLobbyPlayers();
+        switchView('viewHost');
+      }
+
+      function renderHostLobbyPlayers() {
+        const grid = document.getElementById('hostLobbyPlayersGrid');
+        const badge = document.getElementById('hostPlayerCountBadge');
+        const list = Object.values(playersMap);
+        badge.textContent = list.length;
+
+        if (list.length === 0) {
+          grid.innerHTML = `
+            <div class="col-span-full flex flex-col items-center justify-center py-10 text-slate-400 space-y-2">
+              <span class="text-4xl animate-bounce">📱</span>
+              <p class="text-sm font-bold text-slate-500">Đang chờ các bạn sinh viên nhập mã PIN <span class="text-red-700 font-black">${roomPin}</span>...</p>
+              <p class="text-xs text-slate-400">Hoặc bấm "+ Thêm bạn chơi mẫu (Test)" ở góc trên để thêm người chơi giả lập</p>
+            </div>
+          `;
+          return;
+        }
+
+        grid.innerHTML = list.map(p => `
+          <div class="bg-white rounded-xl p-3 border-2 border-red-200 shadow-sm flex items-center gap-2.5 animate-fadeIn">
+            <span class="text-2xl shrink-0">${p.avatar.emoji}</span>
+            <div class="min-w-0 flex-1">
+              <div class="font-black text-xs sm:text-sm text-slate-800 truncate">${escapeHtml(p.name)}</div>
+              <div class="text-[10px] font-bold text-red-600 truncate">${escapeHtml(p.avatar.name)}</div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      function startHostMatch() {
+        SoundFX.correct();
+        if (Object.keys(playersMap).length === 0) {
+          ensureSimulatedClassmates(5);
+        }
+        gameStarted = true;
+        document.getElementById('hostLobbyPanel').classList.add('hidden');
+        document.getElementById('hostLivePanel').classList.remove('hidden');
+        document.getElementById('hostEndGameBtn').classList.remove('hidden');
+        document.getElementById('hostStatusTitle').textContent = 'Bảng Xếp Hạng Trực Tiếp — Đang Thi Đấu!';
+
+        renderHostLiveDashboard('Trận đấu đã bắt đầu! Các người chơi đang tăng tốc!');
+        startHostBotSimulationLoop();
+      }
+
+      function renderHostLiveDashboard(tickerMsg) {
+        const sorted = getSortedPlayers();
+        const totalPlayers = sorted.length;
+        document.getElementById('hostLivePlayersCount').textContent = totalPlayers;
+        if (tickerMsg) {
+          document.getElementById('hostLastEventTicker').textContent = tickerMsg;
+        }
+
+        // Calculate overall accuracy and progress
+        let totalAnswered = 0;
+        let totalCorrect = 0;
+        const maxPossibleAnswers = Math.max(1, totalPlayers * activeQuestions.length);
+
+        sorted.forEach(p => {
+          totalAnswered += p.answeredCount || 0;
+          totalCorrect += p.correctCount || 0;
+        });
+
+        const accuracyPct = totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 0;
+        const progressPct = Math.min(100, Math.round((totalAnswered / maxPossibleAnswers) * 100));
+
+        document.getElementById('hostLiveAccuracy').textContent = accuracyPct + '%';
+        document.getElementById('hostLiveProgress').textContent = progressPct + '%';
+
+        const listEl = document.getElementById('hostLiveLeaderboardList');
+        if (sorted.length === 0) {
+          listEl.innerHTML = `<p class="text-center text-sm text-slate-400 py-8">Chưa có người chơi nào trong phòng.</p>`;
+          return;
+        }
+
+        listEl.innerHTML = sorted.map((p, idx) => {
+          const rank = idx + 1;
+          const pct = Math.min(100, Math.round(((p.answeredCount || 0) / activeQuestions.length) * 100));
+          const medal = rank === 1 ? '👑' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank <= 5 ? '🏅' : `#${rank}`;
+          const rowBg = rank === 1
+            ? 'bg-gradient-to-r from-amber-50 to-red-50 border-2 border-amber-400'
+            : rank <= 5
+              ? 'bg-red-50/40 border border-red-200'
+              : 'bg-white border border-slate-100';
+
+          return `
+            <div class="${rowBg} rounded-xl px-4 py-2.5 flex items-center justify-between gap-3 transition-all">
+              <div class="flex items-center gap-3 min-w-0 flex-1">
+                <span class="w-8 h-8 rounded-lg bg-red-700 text-amber-300 font-black text-sm flex items-center justify-center shrink-0">
+                  ${medal}
+                </span>
+                <span class="text-2xl shrink-0">${p.avatar.emoji}</span>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2">
+                    <span class="font-black text-sm sm:text-base text-slate-900 truncate">${escapeHtml(p.name)}</span>
+                    ${p.streak >= 2 ? `<span class="bg-orange-100 text-orange-700 text-[11px] font-black px-2 py-0.5 rounded-full">🔥 x${p.streak}</span>` : ''}
+                  </div>
+                  <div class="w-full max-w-xs h-1.5 bg-slate-200 rounded-full overflow-hidden mt-1">
+                    <div class="h-full bg-red-600 rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="text-right shrink-0">
+                <div class="font-black text-base sm:text-lg text-red-700">${p.score.toLocaleString('vi-VN')} đ</div>
+                <div class="text-[11px] font-semibold text-slate-500">Câu ${p.answeredCount}/${activeQuestions.length} • Đúng ${p.correctCount}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // ==========================================
+      // 10. PLAYER QUIZ FLOW (35s + 5s Red Warning + Confetti/Condolence + Live Leaderboard)
+      // ==========================================
+      function startPlayerQuizSession() {
+        SoundFX.click();
+        const nameInput = document.getElementById('playerNameInput');
+        const pinInput = document.getElementById('playerPinInput');
+        let nickname = (nameInput.value || '').trim();
+        if (!nickname) {
+          nickname = FUNNY_RANDOM_NAMES[Math.floor(Math.random() * FUNNY_RANDOM_NAMES.length)];
+          nameInput.value = nickname;
+        }
+
+        filterQuestionsByPack();
+
+        const enteredPin = (pinInput.value || '').trim();
+        if (enteredPin) {
+          roomPin = enteredPin;
+        }
+
+        // Create local player entry
+        const playerObj = {
+          id: localPlayerId,
+          name: nickname,
+          avatar: selectedAvatar,
+          score: 0,
+          streak: 0,
+          maxStreak: 0,
+          correctCount: 0,
+          answeredCount: 0,
+          lastDelta: 0,
+          prevRank: null,
+          isBot: false
+        };
+        playersMap[localPlayerId] = playerObj;
+
+        // Ensure simulated classmates are in the room so leaderboard after every question & Top 5 podium are exciting
+        if (Object.keys(playersMap).length < 6) {
+          ensureSimulatedClassmates(5);
+        }
+
+        // Reset all scores if starting fresh
+        Object.values(playersMap).forEach(p => {
+          if (p.id === localPlayerId || p.isBot) {
+            p.score = 0;
+            p.streak = 0;
+            p.maxStreak = 0;
+            p.correctCount = 0;
+            p.answeredCount = 0;
+            p.lastDelta = 0;
+            p.prevRank = null;
+          }
+        });
+
+        connectPlayerToHostPeer(roomPin, playerObj);
+
+        currentQuestionIdx = 0;
+        switchView('viewPlayerGame');
+        loadPlayerQuestion(0);
+      }
+
+      function updatePlayerHeaderBar() {
+        const me = playersMap[localPlayerId];
+        if (!me) return;
+        const sorted = getSortedPlayers();
+        const myRank = sorted.findIndex(p => p.id === localPlayerId) + 1;
+
+        document.getElementById('playerHeaderAvatar').textContent = me.avatar.emoji;
+        document.getElementById('playerHeaderName').textContent = me.name;
+        document.getElementById('playerHeaderScore').textContent = me.score.toLocaleString('vi-VN');
+        document.getElementById('playerHeaderStreak').textContent = me.streak;
+        document.getElementById('playerRankBadge').textContent = `Hạng #${myRank}/${sorted.length}`;
+      }
+
+      function loadPlayerQuestion(idx) {
+        clearInterval(questionTimer);
+        setRedWarningOverlay(false);
+
+        if (idx >= activeQuestions.length) {
+          showFinalPodiumScreen();
+          return;
+        }
+
+        currentQuestionIdx = idx;
+        hasAnsweredCurrent = false;
+        timeLeft = 35;
+
+        const q = activeQuestions[idx];
+        updatePlayerHeaderBar();
+
+        document.getElementById('currentQIndexText').textContent = idx + 1;
+        document.getElementById('totalQCountText').textContent = activeQuestions.length;
+        document.getElementById('questionSectionBadge').textContent = '📌 ' + q.sectionTitle;
+        document.getElementById('questionTextDisplay').textContent = q.question;
+
+        // Show Question Stage, hide Intermission Leaderboard & Feedback
+        document.getElementById('questionStageCard').classList.remove('hidden');
+        document.getElementById('intermissionLeaderboardCard').classList.add('hidden');
+        document.getElementById('answerFeedbackPanel').classList.add('hidden');
+
+        // Render 4 options (A, B, C, D)
+        const badgeStyles = [
+          { letter: 'A', bg: 'bg-red-600 text-white', border: 'border-red-200 hover:border-red-500' },
+          { letter: 'B', bg: 'bg-amber-500 text-red-950', border: 'border-amber-200 hover:border-amber-500' },
+          { letter: 'C', bg: 'bg-rose-600 text-white', border: 'border-rose-200 hover:border-rose-500' },
+          { letter: 'D', bg: 'bg-orange-600 text-white', border: 'border-orange-200 hover:border-orange-500' }
+        ];
+
+        const optionsContainer = document.getElementById('optionsContainer');
+        optionsContainer.innerHTML = q.options.map((optText, optIdx) => {
+          const cleanText = optText.replace(/^[A-D]\.\s*/, '');
+          const st = badgeStyles[optIdx] || badgeStyles[0];
+          return `
+            <button type="button" data-opt-index="${optIdx}"
+              class="option-btn w-full text-left p-4 sm:p-5 rounded-2xl border-2 ${st.border} bg-white shadow-sm flex items-start gap-3.5 group">
+              <span class="w-9 h-9 rounded-xl ${st.bg} font-black text-base flex items-center justify-center shrink-0 shadow-sm">
+                ${st.letter}
+              </span>
+              <span class="font-bold text-sm sm:text-base text-slate-800 leading-snug pt-0.5 flex-1">
+                ${escapeHtml(cleanText)}
+              </span>
+            </button>
+          `;
+        }).join('');
+
+        // Attach click handlers to options
+        optionsContainer.querySelectorAll('.option-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const chosenIdx = parseInt(btn.getAttribute('data-opt-index'), 10);
+            handlePlayerSelectAnswer(chosenIdx);
+          });
+        });
+
+        // Initialize 35s countdown timer
+        updateTimerUI(35);
+        questionTimer = setInterval(() => {
+          timeLeft -= 1;
+          updateTimerUI(timeLeft);
+
+          if (timeLeft <= 5 && timeLeft > 0) {
+            // 5 seconds remaining: Flash red border warning + urgent sound!
+            setRedWarningOverlay(true);
+            SoundFX.tick(true);
+          } else if (timeLeft > 5) {
+            SoundFX.tick(false);
+          }
+
+          if (timeLeft <= 0) {
+            clearInterval(questionTimer);
+            setRedWarningOverlay(false);
+            handlePlayerSelectAnswer(-1); // Timeout (-1)
+          }
+        }, 1000);
+      }
+
+      function updateTimerUI(sec) {
+        const clamped = Math.max(0, sec);
+        document.getElementById('timerSecondsText').textContent = clamped;
+        const pct = Math.round((clamped / 35) * 100);
+        const bar = document.getElementById('timerProgressBar');
+        bar.style.width = pct + '%';
+
+        if (clamped <= 5) {
+          bar.className = 'h-full bg-red-500 rounded-full transition-all duration-300';
+        } else if (clamped <= 12) {
+          bar.className = 'h-full bg-amber-400 rounded-full transition-all duration-300';
+        } else {
+          bar.className = 'h-full bg-gradient-to-r from-amber-300 via-yellow-400 to-emerald-400 rounded-full transition-all duration-300';
+        }
+      }
+
+      function handlePlayerSelectAnswer(chosenIdx) {
+        if (hasAnsweredCurrent) return;
+        hasAnsweredCurrent = true;
+        clearInterval(questionTimer);
+        setRedWarningOverlay(false);
+
+        const q = activeQuestions[currentQuestionIdx];
+        const correctIdx = q.correctIndex;
+        const isCorrect = chosenIdx === correctIdx;
+
+        // Snapshot previous ranks before updating scores
+        const prevSorted = getSortedPlayers();
+        prevSorted.forEach((p, i) => { p.prevRank = i + 1; });
+
+        // Update local player score (Speed + Streak)
+        const me = playersMap[localPlayerId];
+        me.answeredCount = currentQuestionIdx + 1;
+        let earnedPoints = 0;
+        let speedBonus = 0;
+        let streakBonus = 0;
+
+        if (isCorrect) {
+          me.streak += 1;
+          if (me.streak > me.maxStreak) me.maxStreak = me.streak;
+          me.correctCount += 1;
+          speedBonus = Math.round((Math.max(0, timeLeft) / 35) * 500);
+          streakBonus = Math.min(500, (me.streak - 1) * 100);
+          earnedPoints = 500 + speedBonus + streakBonus;
+          me.score += earnedPoints;
+          me.lastDelta = earnedPoints;
+        } else {
+          me.streak = 0;
+          me.lastDelta = 0;
+        }
+
+        // Advance simulated classmates for this question so leaderboard updates dynamically
+        stepBotsForQuestion(currentQuestionIdx);
+
+        // Broadcast progress to Host projector
+        sendNetworkMessage({
+          type: 'PLAYER_PROGRESS',
+          player: me,
+          tickerText: isCorrect
+            ? `${me.avatar.emoji} ${me.name} trả lời ĐÚNG câu ${currentQuestionIdx + 1} (+${earnedPoints}đ, Streak 🔥x${me.streak})!`
+            : `${me.avatar.emoji} ${me.name} vừa chọn sai câu ${currentQuestionIdx + 1} 😭`
+        });
+
+        // Style the 4 option buttons to clearly reveal the correct answer & any wrong selection
+        const optionBtns = document.querySelectorAll('#optionsContainer .option-btn');
+        optionBtns.forEach((btn, idx) => {
+          btn.disabled = true;
+          if (idx === correctIdx) {
+            btn.className = 'option-btn w-full text-left p-4 sm:p-5 rounded-2xl border-4 border-emerald-500 bg-emerald-50 shadow-lg flex items-start gap-3.5 ring-4 ring-emerald-400/30';
+            const badge = btn.querySelector('span:first-child');
+            if (badge) badge.className = 'w-9 h-9 rounded-xl bg-emerald-600 text-white font-black text-base flex items-center justify-center shrink-0 shadow';
+            btn.insertAdjacentHTML('beforeend', `<span class="text-emerald-700 font-black text-xs sm:text-sm shrink-0 bg-emerald-200 px-2.5 py-1 rounded-lg">✅ ĐÁP ÁN ĐÚNG</span>`);
+          } else if (idx === chosenIdx && !isCorrect) {
+            btn.className = 'option-btn w-full text-left p-4 sm:p-5 rounded-2xl border-4 border-red-500 bg-red-50 shadow-md flex items-start gap-3.5 opacity-95';
+            const badge = btn.querySelector('span:first-child');
+            if (badge) badge.className = 'w-9 h-9 rounded-xl bg-red-600 text-white font-black text-base flex items-center justify-center shrink-0 shadow';
+            btn.insertAdjacentHTML('beforeend', `<span class="text-red-700 font-black text-xs sm:text-sm shrink-0 bg-red-200 px-2.5 py-1 rounded-lg">❌ BẠN CHỌN SAI</span>`);
+          } else {
+            btn.className = 'option-btn w-full text-left p-4 sm:p-5 rounded-2xl border border-slate-200 bg-slate-50 opacity-45 flex items-start gap-3.5';
+          }
+        });
+
+        // Show Feedback Panel + Trigger Confetti or Condolence Emojis
+        const feedbackPanel = document.getElementById('answerFeedbackPanel');
+        const emojiEl = document.getElementById('feedbackEmojiIcon');
+        const titleEl = document.getElementById('feedbackTitleText');
+        const subEl = document.getElementById('feedbackSubtitleText');
+        const ptsBadge = document.getElementById('feedbackPointsBadge');
+        const correctAnsEl = document.getElementById('feedbackCorrectAnswerText');
+        const explainEl = document.getElementById('feedbackExplanationText');
+
+        feedbackPanel.classList.remove('hidden');
+        correctAnsEl.textContent = q.options[correctIdx];
+        explainEl.textContent = '💡 Giải thích: ' + q.explanation;
+
+        if (isCorrect) {
+          SoundFX.correct();
+          fireCorrectConfetti();
+          feedbackPanel.className = 'mt-6 rounded-2xl p-5 border-2 border-emerald-400 bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-950 space-y-3 shadow-lg';
+          emojiEl.textContent = '🎉';
+          titleEl.textContent = 'CHÍNH XÁC! PHÁO GIẤY TUNG BAY!';
+          subEl.textContent = FUNNY_CORRECT_MESSAGES[currentQuestionIdx % FUNNY_CORRECT_MESSAGES.length];
+          ptsBadge.className = 'px-4 py-2 rounded-xl font-black text-base sm:text-lg bg-emerald-600 text-white shadow';
+          ptsBadge.textContent = `+${earnedPoints} đ (Tốc độ +${speedBonus} • Streak +${streakBonus})`;
+        } else {
+          SoundFX.wrong();
+          fireSadCondolenceEmojis();
+          feedbackPanel.className = 'mt-6 rounded-2xl p-5 border-2 border-red-400 bg-gradient-to-r from-red-50 to-orange-50 text-red-950 space-y-3 shadow-lg';
+          emojiEl.textContent = chosenIdx === -1 ? '⏰' : '😭';
+          titleEl.textContent = chosenIdx === -1
+            ? 'HẾT THỜI GIAN RỒI! TIẾC QUÁ ĐI!'
+            : 'ỐI DỒI ÔI SAI MẤT TIÊU RỒI! CHIA BUỒN NHÉ!';
+          subEl.textContent = FUNNY_WRONG_MESSAGES[currentQuestionIdx % FUNNY_WRONG_MESSAGES.length];
+          ptsBadge.className = 'px-4 py-2 rounded-xl font-black text-base sm:text-lg bg-red-200 text-red-900';
+          ptsBadge.textContent = '+0 điểm (Mất chuỗi Streak 💔)';
+        }
+
+        updatePlayerHeaderBar();
+      }
+
+      function showIntermissionLeaderboard() {
+        SoundFX.leaderboard();
+        document.getElementById('questionStageCard').classList.add('hidden');
+        const card = document.getElementById('intermissionLeaderboardCard');
+        card.classList.remove('hidden');
+
+        const isLastQuestion = currentQuestionIdx + 1 >= activeQuestions.length;
+        document.getElementById('intermissionTitle').textContent =
+          `Bảng Xếp Hạng Sau Câu ${currentQuestionIdx + 1} / ${activeQuestions.length}`;
+        document.getElementById('nextQuestionBtnLabel').textContent = isLastQuestion
+          ? 'Xem Bục Vinh Danh Top 5 Chung Cuộc'
+          : `Sang Câu Hỏi ${currentQuestionIdx + 2}`;
+
+        const sorted = getSortedPlayers();
+        const myRank = sorted.findIndex(p => p.id === localPlayerId) + 1;
+        const me = playersMap[localPlayerId];
+
+        const mySummaryEl = document.getElementById('intermissionMySummary');
+        const rankDiff = me.prevRank ? (me.prevRank - myRank) : 0;
+        const rankDiffBadge = rankDiff > 0
+          ? `<span class="bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full text-xs font-black">▲ Tăng ${rankDiff} hạng!</span>`
+          : rankDiff < 0
+            ? `<span class="bg-red-100 text-red-700 px-2.5 py-0.5 rounded-full text-xs font-black">▼ Giảm ${Math.abs(rankDiff)} hạng</span>`
+            : `<span class="bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full text-xs font-black">━ Giữ vững hạng</span>`;
+
+        mySummaryEl.innerHTML = `
+          <div class="flex items-center gap-3">
+            <span class="text-3xl">${me.avatar.emoji}</span>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-black text-slate-900 text-base">${escapeHtml(me.name)} (Bạn)</span>
+                ${rankDiffBadge}
+              </div>
+              <div class="text-xs text-slate-600 font-semibold">
+                Vừa nhận: <strong class="${me.lastDelta > 0 ? 'text-emerald-700' : 'text-red-600'}">+${me.lastDelta} điểm</strong> • Chuỗi Streak hiện tại: <strong>🔥 x${me.streak}</strong>
+              </div>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-xs font-extrabold text-red-700 uppercase">Vị trí hiện tại</div>
+            <div class="text-2xl font-black text-red-800">Hạng #${myRank}</div>
+          </div>
+        `;
+
+        const listEl = document.getElementById('intermissionLeaderboardList');
+        listEl.innerHTML = sorted.map((p, idx) => {
+          const rank = idx + 1;
+          const isMe = p.id === localPlayerId;
+          const diff = p.prevRank ? (p.prevRank - rank) : 0;
+          const diffTag = diff > 0
+            ? `<span class="text-emerald-600 font-black text-xs">▲${diff}</span>`
+            : diff < 0
+              ? `<span class="text-red-500 font-black text-xs">▼${Math.abs(diff)}</span>`
+              : `<span class="text-slate-400 font-bold text-xs">•</span>`;
+
+          const medal = rank === 1 ? '👑' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank <= 5 ? '🏅' : `#${rank}`;
+          return `
+            <div class="rounded-2xl px-4 py-3 flex items-center justify-between gap-3 ${isMe ? 'bg-amber-50 border-2 border-red-600 shadow-md' : 'bg-slate-50 border border-slate-200'}">
+              <div class="flex items-center gap-3 min-w-0">
+                <span class="w-8 h-8 rounded-xl ${rank <= 3 ? 'bg-red-700 text-amber-300' : 'bg-slate-200 text-slate-700'} font-black text-sm flex items-center justify-center shrink-0">
+                  ${medal}
+                </span>
+                <span class="w-5 text-center">${diffTag}</span>
+                <span class="text-2xl">${p.avatar.emoji}</span>
+                <div class="min-w-0">
+                  <div class="font-black text-sm sm:text-base text-slate-900 truncate">
+                    ${escapeHtml(p.name)} ${isMe ? '<span class="text-xs bg-red-600 text-white px-2 py-0.5 rounded-full ml-1">BẠN</span>' : ''}
+                  </div>
+                  <div class="text-[11px] text-slate-500 font-semibold">
+                    Đúng ${p.correctCount}/${p.answeredCount} câu ${p.streak >= 2 ? `• 🔥 Streak x${p.streak}` : ''}
+                  </div>
+                </div>
+              </div>
+              <div class="text-right shrink-0">
+                <div class="font-black text-base sm:text-lg text-red-700">${p.score.toLocaleString('vi-VN')} đ</div>
+                <div class="text-[11px] font-bold ${p.lastDelta > 0 ? 'text-emerald-600' : 'text-slate-400'}">
+                  ${p.lastDelta > 0 ? `+${p.lastDelta} đ` : '+0 đ'}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // ==========================================
+      // 11. FINAL KAHOOT-STYLE TOP 5 PODIUM & FULL LIST
+      // ==========================================
+      function showFinalPodiumScreen() {
+        clearInterval(questionTimer);
+        clearInterval(botSimulationTimer);
+        setRedWarningOverlay(false);
+
+        // Make sure bots have finished all questions for fair final standings
+        for (let qIdx = 0; qIdx < activeQuestions.length; qIdx++) {
+          stepBotsForQuestion(qIdx);
+        }
+
+        switchView('viewPodium');
+        SoundFX.podiumFanfare();
+        firePodiumGrandConfetti();
+
+        const sorted = getSortedPlayers();
+        const podiumContainer = document.getElementById('top5PodiumContainer');
+
+        // Visual arrangement for Top 5 Podium: [#4, #2, #1, #3, #5]
+        const podiumOrderIndices = [3, 1, 0, 2, 4];
+        const podiumConfigs = {
+          0: { rank: 1, medal: '👑 HẠNG 1', height: 'h-52 sm:h-60', barBg: 'bg-gradient-to-t from-amber-500 via-yellow-400 to-amber-300 text-red-950 border-4 border-white shadow-2xl', delay: '0.35s' },
+          1: { rank: 2, medal: '🥈 HẠNG 2', height: 'h-40 sm:h-48', barBg: 'bg-gradient-to-t from-slate-300 via-slate-100 to-white text-slate-900 border-2 border-slate-200 shadow-xl', delay: '0.2s' },
+          2: { rank: 3, medal: '🥉 HẠNG 3', height: 'h-32 sm:h-40', barBg: 'bg-gradient-to-t from-amber-700 via-amber-600 to-amber-500 text-white border-2 border-amber-300 shadow-xl', delay: '0.1s' },
+          3: { rank: 4, medal: '🏅 HẠNG 4', height: 'h-24 sm:h-32', barBg: 'bg-gradient-to-t from-red-800 to-red-600 text-white border border-red-400 shadow-lg', delay: '0.05s' },
+          4: { rank: 5, medal: '🎖️ HẠNG 5', height: 'h-20 sm:h-28', barBg: 'bg-gradient-to-t from-red-900 to-red-700 text-white border border-red-400 shadow-lg', delay: '0.05s' }
+        };
+
+        podiumContainer.innerHTML = podiumOrderIndices.map(playerIdx => {
+          const p = sorted[playerIdx];
+          const cfg = podiumConfigs[playerIdx];
+          if (!p) {
+            return `<div class="flex flex-col items-center justify-end h-full opacity-30"><div class="w-full ${cfg.height} rounded-t-2xl bg-white/10"></div></div>`;
+          }
+          const isTop1 = cfg.rank === 1;
+          return `
+            <div class="flex flex-col items-center justify-end text-center">
+              <!-- Avatar & Name Floating Above Podium -->
+              <div class="mb-2 flex flex-col items-center ${isTop1 ? 'float-slow' : ''}">
+                <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-white text-slate-900 flex items-center justify-center text-3xl sm:text-4xl shadow-xl border-2 ${isTop1 ? 'border-amber-300 ring-4 ring-amber-400/50' : 'border-red-200'}">
+                  ${p.avatar.emoji}
+                </div>
+                <div class="mt-1.5 font-black text-xs sm:text-sm text-white max-w-[95px] sm:max-w-[130px] truncate">
+                  ${escapeHtml(p.name)}
+                </div>
+                <div class="text-[11px] sm:text-xs font-extrabold text-amber-300">
+                  ${p.score.toLocaleString('vi-VN')} đ
+                </div>
+              </div>
+
+              <!-- Podium Pillar -->
+              <div class="podium-bar w-full ${cfg.height} ${cfg.barBg} rounded-t-2xl p-2 sm:p-3 flex flex-col items-center justify-between" style="animation-delay: ${cfg.delay}">
+                <span class="font-black text-[10px] sm:text-xs uppercase tracking-wider px-2 py-0.5 rounded-full bg-black/15">
+                  ${cfg.medal}
+                </span>
+                <div class="text-[10px] sm:text-xs font-bold opacity-90">
+                  Đúng ${p.correctCount}/${activeQuestions.length}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        // Render full players list below podium
+        const fullListEl = document.getElementById('finalFullRankingList');
+        fullListEl.innerHTML = sorted.map((p, idx) => {
+          const rank = idx + 1;
+          const isMe = p.id === localPlayerId;
+          const accuracy = activeQuestions.length > 0 ? Math.round((p.correctCount / activeQuestions.length) * 100) : 0;
+          const badgeLabel = rank === 1 ? '👑 Top 1' : rank === 2 ? '🥈 Top 2' : rank === 3 ? '🥉 Top 3' : rank <= 5 ? `🏅 Top ${rank}` : `#${rank}`;
+
+          return `
+            <div class="rounded-2xl p-3.5 sm:px-5 flex flex-wrap items-center justify-between gap-3 ${rank <= 5 ? 'bg-red-50/70 border-2 border-red-200' : 'bg-slate-50 border border-slate-200'} ${isMe ? 'ring-2 ring-red-600' : ''}">
+              <div class="flex items-center gap-3.5">
+                <span class="px-3 py-1 rounded-xl ${rank <= 5 ? 'bg-red-700 text-amber-300' : 'bg-slate-200 text-slate-700'} font-black text-xs sm:text-sm">
+                  ${badgeLabel}
+                </span>
+                <span class="text-3xl">${p.avatar.emoji}</span>
+                <div>
+                  <div class="font-black text-sm sm:text-base text-slate-900 flex items-center gap-2">
+                    <span>${escapeHtml(p.name)}</span>
+                    ${isMe ? '<span class="text-[10px] bg-red-600 text-white px-2 py-0.5 rounded-full">BẠN</span>' : ''}
+                  </div>
+                  <div class="text-xs text-slate-500 font-semibold">
+                    Nhân vật: ${escapeHtml(p.avatar.name)} • Chuỗi Streak cao nhất: 🔥 x${p.maxStreak || p.streak}
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-4 sm:gap-6">
+                <div class="text-right">
+                  <div class="text-[11px] font-bold text-slate-400 uppercase">Độ chính xác</div>
+                  <div class="text-sm font-black text-emerald-700">${p.correctCount}/${activeQuestions.length} câu (${accuracy}%)</div>
+                </div>
+                <div class="text-right min-w-[90px]">
+                  <div class="text-[11px] font-bold text-slate-400 uppercase">Tổng điểm</div>
+                  <div class="text-lg font-black text-red-700">${p.score.toLocaleString('vi-VN')} đ</div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // ==========================================
+      // 12. CSV EXPORT & QUESTION BANK MODAL
+      // ==========================================
+      function exportResultsToCSV() {
+        SoundFX.click();
+        const sorted = getSortedPlayers();
+        const rows = [
+          ['Hạng', 'Nickname', 'Nhân vật Avatar', 'Tổng điểm', 'Số câu đúng', 'Tổng số câu', 'Streak cao nhất']
+        ];
+        sorted.forEach((p, idx) => {
+          rows.push([
+            idx + 1,
+            p.name,
+            p.avatar.name,
+            p.score,
+            p.correctCount,
+            activeQuestions.length,
+            p.maxStreak || p.streak
+          ]);
+        });
+        const csvContent = '\uFEFF' + rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Bang_Xep_Hang_Quiz_Lich_Su_Dang_${roomPin || 'CC01'}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('Đã tải bảng điểm!', 'File CSV kết quả thi đấu đã được tải xuống máy của bạn.', '📥');
+      }
+
+      const DEFAULT_SECTION_TITLES = {
+        part11: 'Phần 1.1 • Bối cảnh lịch sử & Yêu cầu thành lập Đảng',
+        part23: 'Phần 2.3 • Đường lối đối ngoại Đại hội XII & Đại hội XIII',
+        part34: 'Phần 3.4 • Thực tiễn Đối ngoại & Hội nhập Quốc tế thời kỳ Đổi mới'
+      };
+
+      function openQuestionEditorForm(editId = null) {
+        SoundFX.click();
+        const panel = document.getElementById('questionEditorFormPanel');
+        const titleEl = document.getElementById('editorFormTitle');
+        const idInput = document.getElementById('editQuestionIdInput');
+        const qTextInput = document.getElementById('editQuestionTextInput');
+        const optA = document.getElementById('editOptAInput');
+        const optB = document.getElementById('editOptBInput');
+        const optC = document.getElementById('editOptCInput');
+        const optD = document.getElementById('editOptDInput');
+        const explainInput = document.getElementById('editQuestionExplainInput');
+        const saveBtnText = document.getElementById('saveQuestionFormBtnText');
+
+        panel.classList.remove('hidden');
+        panel.scrollTop = 0;
+
+        if (editId) {
+          const idx = QUESTION_BANK.findIndex(item => item.id === editId);
+          const q = QUESTION_BANK[idx];
+          if (!q) return;
+          titleEl.innerHTML = `<span>✏️ Đang Chỉnh Sửa Câu Hỏi #${idx + 1}</span>`;
+          saveBtnText.textContent = 'Lưu Thay Đổi';
+          idInput.value = q.id;
+          qTextInput.value = q.question || '';
+          optA.value = (q.options[0] || '').replace(/^A\.\s*/, '');
+          optB.value = (q.options[1] || '').replace(/^B\.\s*/, '');
+          optC.value = (q.options[2] || '').replace(/^C\.\s*/, '');
+          optD.value = (q.options[3] || '').replace(/^D\.\s*/, '');
+          explainInput.value = q.explanation || '';
+          const radios = document.querySelectorAll('input[name="editCorrectOption"]');
+          radios.forEach(r => { r.checked = parseInt(r.value, 10) === q.correctIndex; });
+        } else {
+          titleEl.innerHTML = '<span>✨ Thêm Câu Hỏi Mới Vào Bộ Đề</span>';
+          saveBtnText.textContent = 'Thêm Câu Hỏi Này';
+          idInput.value = '';
+          qTextInput.value = '';
+          optA.value = '';
+          optB.value = '';
+          optC.value = '';
+          optD.value = '';
+          explainInput.value = '';
+          const radios = document.querySelectorAll('input[name="editCorrectOption"]');
+          radios.forEach(r => { r.checked = r.value === '0'; });
+        }
+
+        qTextInput.focus();
+      }
+
+      function closeQuestionEditorForm() {
+        const panel = document.getElementById('questionEditorFormPanel');
+        if (panel) panel.classList.add('hidden');
+      }
+
+      function saveQuestionFromForm() {
+        SoundFX.click();
+        const idInput = document.getElementById('editQuestionIdInput').value.trim();
+        const qText = document.getElementById('editQuestionTextInput').value.trim();
+        const rawA = document.getElementById('editOptAInput').value.trim().replace(/^A\.\s*/, '');
+        const rawB = document.getElementById('editOptBInput').value.trim().replace(/^B\.\s*/, '');
+        const rawC = document.getElementById('editOptCInput').value.trim().replace(/^C\.\s*/, '');
+        const rawD = document.getElementById('editOptDInput').value.trim().replace(/^D\.\s*/, '');
+        const explainVal = document.getElementById('editQuestionExplainInput').value.trim() || 'Đáp án đúng theo giáo trình và văn kiện Đảng.';
+
+        if (!qText || !rawA || !rawB || !rawC || !rawD) {
+          showToast('Thiếu thông tin!', 'Vui lòng nhập đầy đủ nội dung câu hỏi và cả 4 đáp án A, B, C, D.', '⚠️');
+          return;
+        }
+
+        let correctIdx = 0;
+        document.querySelectorAll('input[name="editCorrectOption"]').forEach(r => {
+          if (r.checked) correctIdx = parseInt(r.value, 10);
+        });
+
+        const formattedOptions = [
+          'A. ' + rawA,
+          'B. ' + rawB,
+          'C. ' + rawC,
+          'D. ' + rawD
+        ];
+
+        if (idInput) {
+          const idx = QUESTION_BANK.findIndex(item => item.id === idInput);
+          if (idx !== -1) {
+            QUESTION_BANK[idx] = {
+              ...QUESTION_BANK[idx],
+              question: qText,
+              options: formattedOptions,
+              correctIndex: correctIdx,
+              explanation: explainVal
+            };
+            showToast('Đã cập nhật câu hỏi!', 'Nội dung câu hỏi và đáp án đã được lưu thành công.', '✅');
+          }
+        } else {
+          const newId = 'custom_' + Date.now();
+          QUESTION_BANK.unshift({
+            id: newId,
+            pack: 'all',
+            sectionTitle: '',
+            question: qText,
+            options: formattedOptions,
+            correctIndex: correctIdx,
+            explanation: explainVal
+          });
+          showToast('Đã thêm câu hỏi mới!', 'Câu hỏi mới đã được đưa lên đầu danh sách.', '🎉');
+        }
+
+        saveQuestionBankToStorage();
+        filterQuestionsByPack();
+        closeQuestionEditorForm();
+        renderQuestionBankModal();
+        if (isHostMode) broadcastRoomSync();
+      }
+
+      function renderQuestionBankModal() {
+        const container = document.getElementById('questionBankModalList');
+        const summaryEl = document.getElementById('modalQuestionSummaryText');
+        if (summaryEl) {
+          summaryEl.textContent = `Tổng cộng: ${QUESTION_BANK.length} câu hỏi`;
+        }
+
+        if (QUESTION_BANK.length === 0) {
+          container.innerHTML = `
+            <div class="text-center py-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 space-y-3">
+              <div class="text-4xl">📭</div>
+              <p class="font-bold text-slate-600 text-sm">Chưa có câu hỏi nào trong bộ đề.</p>
+              <p class="text-xs text-slate-400">Hãy bấm nút "+ Thêm Câu Hỏi Mới" ở góc trên để tạo câu hỏi nhé!</p>
+            </div>
+          `;
+          return;
+        }
+
+        const letters = ['A', 'B', 'C', 'D'];
+        container.innerHTML = QUESTION_BANK.map((q, idx) => {
+          return `
+            <div class="bg-red-50/40 border-2 border-red-200 hover:border-red-400 transition rounded-2xl p-4 space-y-2.5">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="bg-red-700 text-white text-xs font-black px-2.5 py-0.5 rounded-lg">Câu #${idx + 1}</span>
+                  <span class="text-xs font-black text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">Đáp án đúng: ${letters[q.correctIndex]}</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <button type="button" data-move-up="${escapeHtml(q.id)}" class="px-2 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-bold" title="Đưa câu này lên trên">⬆️</button>
+                  <button type="button" data-move-down="${escapeHtml(q.id)}" class="px-2 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-bold" title="Đưa câu này xuống dưới">⬇️</button>
+                  <button type="button" data-edit-qid="${escapeHtml(q.id)}" class="px-3 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-red-950 font-black text-xs flex items-center gap-1 shadow-sm">
+                    <span>✏️</span> <span>Sửa</span>
+                  </button>
+                  <button type="button" data-delete-qid="${escapeHtml(q.id)}" class="px-3 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1 shadow-sm">
+                    <span>🗑️</span> <span>Xoá</span>
+                  </button>
+                </div>
+              </div>
+              <div class="font-black text-slate-900 text-sm sm:text-base">${escapeHtml(q.question)}</div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm">
+                ${q.options.map((opt, oi) => `
+                  <div class="p-2 rounded-lg border ${oi === q.correctIndex ? 'bg-emerald-50 border-emerald-400 font-bold text-emerald-900' : 'bg-white border-slate-200 text-slate-700'}">
+                    ${escapeHtml(opt)} ${oi === q.correctIndex ? '✅' : ''}
+                  </div>
+                `).join('')}
+              </div>
+              <div class="text-xs text-slate-600 bg-white p-2.5 rounded-lg border border-slate-200">
+                💡 <strong>Giải thích:</strong> ${escapeHtml(q.explanation)}
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        // Bind Edit buttons
+        container.querySelectorAll('button[data-edit-qid]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const qid = btn.getAttribute('data-edit-qid');
+            openQuestionEditorForm(qid);
+          });
+        });
+
+        // Bind Delete buttons
+        container.querySelectorAll('button[data-delete-qid]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            SoundFX.click();
+            const qid = btn.getAttribute('data-delete-qid');
+            if (QUESTION_BANK.length <= 1) {
+              showToast('Không thể xoá hết!', 'Bộ đề cần có ít nhất 1 câu hỏi để thi đấu.', '⚠️');
+              return;
+            }
+            QUESTION_BANK = QUESTION_BANK.filter(item => item.id !== qid);
+            saveQuestionBankToStorage();
+            filterQuestionsByPack(currentPackKey);
+            renderQuestionBankModal();
+            if (isHostMode) broadcastRoomSync();
+            showToast('Đã xoá câu hỏi!', `Còn lại ${QUESTION_BANK.length} câu hỏi trong ngân hàng đề.`, '🗑️');
+          });
+        });
+
+        // Bind Move Up / Move Down buttons
+        container.querySelectorAll('button[data-move-up]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            SoundFX.click();
+            const qid = btn.getAttribute('data-move-up');
+            const idx = QUESTION_BANK.findIndex(item => item.id === qid);
+            if (idx > 0) {
+              const temp = QUESTION_BANK[idx - 1];
+              QUESTION_BANK[idx - 1] = QUESTION_BANK[idx];
+              QUESTION_BANK[idx] = temp;
+              saveQuestionBankToStorage();
+              filterQuestionsByPack(currentPackKey);
+              renderQuestionBankModal();
+            }
+          });
+        });
+
+        container.querySelectorAll('button[data-move-down]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            SoundFX.click();
+            const qid = btn.getAttribute('data-move-down');
+            const idx = QUESTION_BANK.findIndex(item => item.id === qid);
+            if (idx !== -1 && idx < QUESTION_BANK.length - 1) {
+              const temp = QUESTION_BANK[idx + 1];
+              QUESTION_BANK[idx + 1] = QUESTION_BANK[idx];
+              QUESTION_BANK[idx] = temp;
+              saveQuestionBankToStorage();
+              filterQuestionsByPack(currentPackKey);
+              renderQuestionBankModal();
+            }
+          });
+        });
+      }
+
+      function escapeHtml(str) {
+        return String(str || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      // ==========================================
+      // 13. INITIALIZATION & EVENT LISTENERS
+      // ==========================================
+      function renderAvatarPicker() {
+        const grid = document.getElementById('avatarGrid');
+        const label = document.getElementById('selectedAvatarLabel');
+        grid.innerHTML = FUNNY_AVATARS.map(av => {
+          const isSelected = av.id === selectedAvatar.id;
+          return `
+            <button type="button" data-avatar-id="${av.id}"
+              class="p-2 rounded-xl border-2 transition flex flex-col items-center justify-center gap-1 ${isSelected ? 'bg-red-600 text-white border-amber-400 shadow-md scale-105' : 'bg-white text-slate-700 border-red-100 hover:border-red-300'}">
+              <span class="text-2xl sm:text-3xl">${av.emoji}</span>
+              <span class="text-[10px] font-bold truncate w-full text-center">${escapeHtml(av.name)}</span>
+            </button>
+          `;
+        }).join('');
+
+        if (label) {
+          label.textContent = `${selectedAvatar.name} ${selectedAvatar.emoji}`;
+        }
+
+        grid.querySelectorAll('button[data-avatar-id]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            SoundFX.click();
+            const id = btn.getAttribute('data-avatar-id');
+            const found = FUNNY_AVATARS.find(a => a.id === id);
+            if (found) {
+              selectedAvatar = found;
+              renderAvatarPicker();
+            }
+          });
+        });
+      }
+
+      function initApp() {
+        renderAvatarPicker();
+        initBroadcastChannel();
+
+        // Check URL parameters for ?pin=XXXXXX (when student scans QR code)
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const urlPin = params.get('pin') || params.get('room');
+          if (urlPin) {
+            roomPin = urlPin.trim();
+            const pinInput = document.getElementById('playerPinInput');
+            if (pinInput) pinInput.value = roomPin;
+            showToast('Đã điền sẵn Mã Phòng!', `Mã phòng ${roomPin} đã sẵn sàng, hãy chọn Avatar & nhập Nickname để vào chơi!`, '📱');
+          }
+        } catch (e) {}
+
+        // Random Nickname button
+        document.getElementById('randomNameBtn').addEventListener('click', () => {
+          SoundFX.click();
+          const rand = FUNNY_RANDOM_NAMES[Math.floor(Math.random() * FUNNY_RANDOM_NAMES.length)];
+          document.getElementById('playerNameInput').value = rand;
+        });
+
+
+
+        // Join as Player
+        document.getElementById('joinRoomPlayerBtn').addEventListener('click', startPlayerQuizSession);
+
+        // Create Host Room
+        document.getElementById('createHostRoomBtn').addEventListener('click', openHostLobby);
+
+        // Host Start Game
+        document.getElementById('hostStartGameBtn').addEventListener('click', startHostMatch);
+
+        // Host Add Sample Bots
+        document.getElementById('hostAddBotsBtn').addEventListener('click', () => {
+          SoundFX.click();
+          const count = ensureSimulatedClassmates(6);
+          renderHostLobbyPlayers();
+          if (gameStarted) {
+            renderHostLiveDashboard('Đã thêm các bạn cùng lớp giả lập vào đường đua!');
+          }
+          showToast('Đã thêm người chơi mẫu!', count > 0 ? `Đã thêm ${count} bạn cùng lớp giả lập để test đua Top.` : 'Đội hình lớp học mẫu đã đầy đủ!', '🤖');
+        });
+
+        // Host switch to Player mode to test playing directly
+        document.getElementById('hostOpenPlayerTabBtn').addEventListener('click', () => {
+          SoundFX.click();
+          isHostMode = false;
+          document.getElementById('playerPinInput').value = roomPin;
+          startPlayerQuizSession();
+        });
+
+        // Host End Game & Show Top 5 Podium
+        document.getElementById('hostEndGameBtn').addEventListener('click', () => {
+          SoundFX.click();
+          sendNetworkMessage({ type: 'HOST_END_GAME', playersMap });
+          showFinalPodiumScreen();
+        });
+
+        // Copy Join Link
+        document.getElementById('copyJoinLinkBtn').addEventListener('click', () => {
+          SoundFX.click();
+          const text = document.getElementById('hostJoinUrlText').textContent;
+          try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(text);
+            } else {
+              const ta = document.createElement('textarea');
+              ta.value = text;
+              document.body.appendChild(ta);
+              ta.select();
+              document.execCommand('copy');
+              document.body.removeChild(ta);
+            }
+          } catch (e) {}
+          showToast('Đã sao chép link!', 'Gửi link này hoặc chiếu mã QR cho cả lớp vào phòng nhé.', '✅');
+        });
+
+        // Player Intermission Leaderboard & Next Question buttons
+        document.getElementById('showIntermissionLeaderboardBtn').addEventListener('click', showIntermissionLeaderboard);
+        document.getElementById('nextQuestionBtn').addEventListener('click', () => {
+          SoundFX.click();
+          loadPlayerQuestion(currentQuestionIdx + 1);
+        });
+
+        // Podium actions
+        document.getElementById('exportCsvBtn').addEventListener('click', exportResultsToCSV);
+        document.getElementById('playAgainBtn').addEventListener('click', () => {
+          SoundFX.click();
+          switchView('viewLanding');
+        });
+
+        // Header navigation
+        document.getElementById('navHomeBtn').addEventListener('click', () => {
+          SoundFX.click();
+          clearInterval(questionTimer);
+          clearInterval(botSimulationTimer);
+          setRedWarningOverlay(false);
+          switchView('viewLanding');
+        });
+        document.getElementById('brandHomeBtn').addEventListener('click', () => {
+          SoundFX.click();
+          clearInterval(questionTimer);
+          clearInterval(botSimulationTimer);
+          setRedWarningOverlay(false);
+          switchView('viewLanding');
+        });
+
+        // Sound toggle
+        document.getElementById('soundToggleBtn').addEventListener('click', () => {
+          soundEnabled = !soundEnabled;
+          document.getElementById('soundToggleIcon').textContent = soundEnabled ? '🔊' : '🔇';
+          showToast(soundEnabled ? 'Đã bật âm thanh' : 'Đã tắt âm thanh', soundEnabled ? 'Hiệu ứng âm thanh Game Show đã sẵn sàng!' : 'Đã tắt tiếng.', soundEnabled ? '🔊' : '🔇');
+        });
+
+        // Sync initial question counts & labels
+        filterQuestionsByPack(currentPackKey);
+
+        // Question Bank Modal & Editor Controls
+        const qModal = document.getElementById('questionBankModal');
+        const openQModal = () => {
+          SoundFX.click();
+          closeQuestionEditorForm();
+          renderQuestionBankModal();
+          qModal.classList.remove('hidden');
+          qModal.classList.add('flex');
+        };
+        document.getElementById('openQuestionModalBtn').addEventListener('click', openQModal);
+        document.getElementById('hostEditQuestionsQuickBtn').addEventListener('click', openQModal);
+
+        const closeQModal = () => {
+          qModal.classList.add('hidden');
+          qModal.classList.remove('flex');
+        };
+        document.getElementById('closeQuestionModalBtn').addEventListener('click', closeQModal);
+        document.getElementById('closeQuestionModalBottomBtn').addEventListener('click', closeQModal);
+
+        document.getElementById('openAddQuestionFormBtn').addEventListener('click', () => openQuestionEditorForm(null));
+        document.getElementById('cancelQuestionFormBtn').addEventListener('click', closeQuestionEditorForm);
+        document.getElementById('cancelQuestionFormBtn2').addEventListener('click', closeQuestionEditorForm);
+        document.getElementById('saveQuestionFormBtn').addEventListener('click', saveQuestionFromForm);
+
+
+
+        // Reset to default 25 questions confirmation
+        const confirmResetBox = document.getElementById('confirmResetBox');
+        document.getElementById('requestResetDefaultQuestionsBtn').addEventListener('click', () => {
+          SoundFX.click();
+          confirmResetBox.classList.remove('hidden');
+          confirmResetBox.classList.add('flex');
+        });
+        document.getElementById('confirmResetNoBtn').addEventListener('click', () => {
+          confirmResetBox.classList.add('hidden');
+          confirmResetBox.classList.remove('flex');
+        });
+        document.getElementById('confirmResetYesBtn').addEventListener('click', () => {
+          SoundFX.correct();
+          QUESTION_BANK = JSON.parse(JSON.stringify(DEFAULT_QUESTION_BANK));
+          saveQuestionBankToStorage();
+          filterQuestionsByPack(currentPackKey);
+          confirmResetBox.classList.add('hidden');
+          confirmResetBox.classList.remove('flex');
+          closeQuestionEditorForm();
+          renderQuestionBankModal();
+          if (isHostMode) broadcastRoomSync();
+          showToast('Đã khôi phục mặc định!', 'Bộ 25 câu hỏi gốc từ file Word đã được khôi phục.', '🔄');
+        });
+
+        // Classroom Connection Guide Modal
+        const gModal = document.getElementById('guideModal');
+        document.getElementById('openGuideModalBtn').addEventListener('click', () => {
+          SoundFX.click();
+          gModal.classList.remove('hidden');
+          gModal.classList.add('flex');
+        });
+        const closeGModal = () => {
+          gModal.classList.add('hidden');
+          gModal.classList.remove('flex');
+        };
+        document.getElementById('closeGuideModalBtn').addEventListener('click', closeGModal);
+        document.getElementById('closeGuideModalBottomBtn').addEventListener('click', closeGModal);
+      }
+
+      window.addEventListener('DOMContentLoaded', initApp);
+    })();
+  </script>
+</body>
+</html>
